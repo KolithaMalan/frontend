@@ -1,0 +1,334 @@
+import React, { useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import {
+  FiMapPin,
+  FiNavigation,
+  FiCalendar,
+  FiClock,
+  FiUser,
+  FiCheck,
+  FiX,
+  FiMap,
+  FiAlertTriangle,
+  FiTruck,
+  FiRefreshCw,
+  FiFileText,
+} from 'react-icons/fi';
+import StatusBadge from '../common/StatusBadge';
+import { formatDate, formatTime, formatDistance, formatAddress } from '../../utils/formatters';
+import { RIDE_TYPE_LABELS, PM_APPROVAL_THRESHOLD_KM } from '../../utils/constants';
+
+const RideApprovalCard = ({ 
+  ride, 
+  onApprove, 
+  onReject, 
+  onViewMap,
+  onAssign,
+  onReassign,
+  showAssign = false,
+  showReassign = false,
+  type = 'approval', // 'approval', 'assignment', or 'assigned'
+  userRole = null // Pass current user's role
+}) => {
+  const isLongDistance = ride.calculatedDistance > PM_APPROVAL_THRESHOLD_KM;
+  const [approvalNote, setApprovalNote] = useState('');
+  const [showNoteInput, setShowNoteInput] = useState(false);
+  const [noteError, setNoteError] = useState('');
+
+  // Determine if note is required
+  const requiresNote = isLongDistance && userRole === 'admin' && type === 'approval';
+
+  const handleApproveClick = () => {
+    // Admin approving long-distance ride needs note
+    if (requiresNote) {
+      setShowNoteInput(true);
+    } else {
+      // PM or short-distance approval (no note needed)
+      onApprove?.(ride);
+    }
+  };
+
+  const handleSubmitApproval = () => {
+    // Validate note for long-distance admin approvals
+    if (requiresNote && (!approvalNote || approvalNote.trim() === '')) {
+      setNoteError('Approval note is required for long-distance rides (>15km)');
+      return;
+    }
+    
+    // Call approval with note (or empty string for PM/short rides)
+    onApprove?.(ride, approvalNote.trim());
+    
+    // Reset state
+    setShowNoteInput(false);
+    setApprovalNote('');
+    setNoteError('');
+  };
+
+  const handleCancelNote = () => {
+    setShowNoteInput(false);
+    setApprovalNote('');
+    setNoteError('');
+  };
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="card hover:shadow-lg transition-shadow"
+    >
+      {/* Header */}
+      <div className="flex flex-wrap items-start justify-between gap-3 mb-4">
+        <div>
+          <div className="flex items-center gap-2 mb-2">
+            <h3 className="text-lg font-semibold text-gray-900">
+              Ride #{ride.rideId}
+            </h3>
+            <span className="badge badge-info">
+              {RIDE_TYPE_LABELS[ride.rideType]}
+            </span>
+          </div>
+          <StatusBadge status={ride.status} type="ride" />
+        </div>
+
+        <div className="text-right">
+          <div className={`
+            inline-flex items-center gap-2 px-3 py-1.5 rounded-full
+            ${isLongDistance ? 'bg-amber-100' : 'bg-gray-100'}
+          `}>
+            <FiNavigation className={`w-4 h-4 ${isLongDistance ? 'text-amber-600' : 'text-gray-600'}`} />
+            <span className={`text-lg font-bold ${isLongDistance ? 'text-amber-600' : 'text-gray-900'}`}>
+              {formatDistance(ride.calculatedDistance)}
+            </span>
+          </div>
+          <p className="text-xs text-gray-500 mt-1">
+            {isLongDistance ? 'Long Distance' : 'Short Distance'}
+          </p>
+        </div>
+      </div>
+
+      {/* Long Distance Alert - Show for Admin */}
+      {isLongDistance && type === 'approval' && userRole === 'admin' && (
+        <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 mb-4">
+          <div className="flex items-start gap-3">
+            <FiAlertTriangle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
+            <div>
+              <p className="text-sm font-medium text-amber-900">Long Distance Alert</p>
+              <p className="text-sm text-amber-700 mt-0.5">
+                This {ride.rideType === 'return' ? 'return trip' : 'ride'} is {ride.calculatedDistance} km. 
+                <strong> A note is required if you approve this ride.</strong>
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Long Distance Alert - Show for PM */}
+      {isLongDistance && type === 'approval' && userRole === 'project_manager' && (
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
+          <div className="flex items-start gap-3">
+            <FiAlertTriangle className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
+            <div>
+              <p className="text-sm font-medium text-blue-900">PM Approval Required</p>
+              <p className="text-sm text-blue-700 mt-0.5">
+                This {ride.rideType === 'return' ? 'return trip' : 'ride'} is {ride.calculatedDistance} km and requires your approval.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Requester Info */}
+      <div className="flex items-center gap-3 p-3 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg mb-4">
+        <div className="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center">
+          <span className="text-white font-semibold text-sm">
+            {ride.requester?.name?.charAt(0)?.toUpperCase()}
+          </span>
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="font-medium text-gray-900">{ride.requester?.name}</p>
+          <p className="text-sm text-gray-600 truncate">{ride.requester?.email}</p>
+        </div>
+      </div>
+
+      {/* Locations */}
+      <div className="space-y-3 mb-4">
+        <div className="flex items-start gap-3">
+          <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center flex-shrink-0">
+            <FiMapPin className="w-5 h-5 text-green-600" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-xs font-semibold text-green-600 uppercase mb-1">Pickup Location</p>
+            <p className="text-sm text-gray-900 leading-relaxed">
+              {formatAddress(ride.pickupLocation?.address, 80)}
+            </p>
+          </div>
+        </div>
+
+        <div className="ml-5 border-l-2 border-dashed border-gray-300 h-6"></div>
+
+        <div className="flex items-start gap-3">
+          <div className="w-10 h-10 bg-red-100 rounded-lg flex items-center justify-center flex-shrink-0">
+            <FiNavigation className="w-5 h-5 text-red-600" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-xs font-semibold text-red-600 uppercase mb-1">Destination</p>
+            <p className="text-sm text-gray-900 leading-relaxed">
+              {formatAddress(ride.destinationLocation?.address, 80)}
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* Schedule */}
+      <div className="flex items-center gap-6 py-3 px-3 bg-gray-50 rounded-lg mb-4">
+        <div className="flex items-center gap-2">
+          <FiCalendar className="w-4 h-4 text-gray-500" />
+          <span className="text-sm font-medium text-gray-900">{formatDate(ride.scheduledDate)}</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <FiClock className="w-4 h-4 text-gray-500" />
+          <span className="text-sm font-medium text-gray-900">{formatTime(ride.scheduledTime)}</span>
+        </div>
+      </div>
+
+      {/* Driver Info (if assigned) */}
+      {ride.assignedDriver && (
+        <div className="mb-4 p-3 bg-purple-50 border border-purple-200 rounded-lg">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-purple-500 rounded-full flex items-center justify-center">
+              <span className="text-white font-semibold text-sm">
+                {ride.assignedDriver.name?.charAt(0)?.toUpperCase()}
+              </span>
+            </div>
+            <div className="flex-1">
+              <p className="text-sm font-semibold text-purple-900">
+                {ride.assignedDriver.name}
+              </p>
+              <p className="text-xs text-purple-700">
+                {ride.assignedVehicle?.vehicleNumber} • {ride.assignedDriver.phone}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Approval Note Input (for Admin approving long distance rides) */}
+      <AnimatePresence>
+        {showNoteInput && requiresNote && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            className="mb-4 p-4 bg-amber-50 border border-amber-200 rounded-lg"
+          >
+            <div className="flex items-center gap-2 mb-3">
+              <FiFileText className="w-5 h-5 text-amber-600" />
+              <h4 className="font-semibold text-amber-900">Admin Approval Note Required</h4>
+            </div>
+            
+            <textarea
+              value={approvalNote}
+              onChange={(e) => {
+                setApprovalNote(e.target.value);
+                setNoteError('');
+              }}
+              placeholder="Please provide a reason for approving this long-distance ride..."
+              className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 resize-none ${
+                noteError ? 'border-red-500' : 'border-gray-300'
+              }`}
+              rows={4}
+              maxLength={500}
+            />
+            
+            {noteError && (
+              <p className="text-sm text-red-600 mt-2 flex items-center gap-1">
+                <FiAlertTriangle className="w-4 h-4" />
+                {noteError}
+              </p>
+            )}
+            
+            <div className="flex items-center justify-between mt-3">
+              <p className="text-xs text-gray-500">
+                {approvalNote.length}/500 characters
+              </p>
+              
+              <div className="flex gap-2">
+                <button
+                  onClick={handleCancelNote}
+                  className="btn btn-outline btn-sm"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleSubmitApproval}
+                  className="btn btn-success btn-sm"
+                >
+                  <FiCheck className="w-4 h-4 mr-1" />
+                  Submit Approval
+                </button>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Actions */}
+      <div className="flex flex-col sm:flex-row gap-2 pt-4 border-t border-gray-100">
+        {/* Approval Buttons */}
+        {type === 'approval' && !showNoteInput && (
+          <>
+            <button
+              onClick={handleApproveClick}
+              className="btn btn-success flex-1"
+            >
+              <FiCheck className="w-5 h-5 mr-2" />
+              {requiresNote ? 'Approve with Note' : 'Approve'}
+            </button>
+            <button
+              onClick={() => onReject?.(ride)}
+              className="btn btn-danger flex-1"
+            >
+              <FiX className="w-5 h-5 mr-2" />
+              Reject
+            </button>
+          </>
+        )}
+
+        {/* Assignment Button */}
+        {type === 'assignment' && (
+          <button
+            onClick={() => onAssign?.(ride)}
+            className="btn btn-primary flex-1"
+          >
+            <FiTruck className="w-5 h-5 mr-2" />
+            Assign Driver & Vehicle
+          </button>
+        )}
+
+        {/* Reassignment Button */}
+        {(showReassign || type === 'assigned') && (
+          <button
+            onClick={() => onReassign?.(ride)}
+            className="btn btn-warning flex-1"
+          >
+            <FiRefreshCw className="w-5 h-5 mr-2" />
+            Reassign Driver & Vehicle
+          </button>
+        )}
+
+        {/* View Map Button - Always show if not in note input mode */}
+        {!showNoteInput && (
+          <button
+            onClick={() => onViewMap?.(ride)}
+            className="btn btn-outline sm:w-auto w-full"
+          >
+            <FiMap className="w-5 h-5 mr-2" />
+            View Map
+          </button>
+        )}
+      </div>
+    </motion.div>
+  );
+};
+
+export default RideApprovalCard;
