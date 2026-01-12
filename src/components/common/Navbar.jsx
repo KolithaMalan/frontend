@@ -139,11 +139,11 @@ const Navbar = ({ onMenuClick }) => {
                     )}
                   </div>
                   <Link
-                    to="/notifications"
-                    className="block p-3 text-center text-sm text-primary-600 hover:bg-gray-50 font-medium"
-                  >
-                    View all notifications
-                  </Link>
+  to="/alerts"
+  className="block p-3 text-center text-sm text-primary-600 hover:bg-gray-50 font-medium"
+>
+  View all notifications
+</Link>
                 </motion.div>
               )}
             </AnimatePresence>
