@@ -16,7 +16,7 @@ import {
 } from 'react-icons/fi';
 import StatusBadge from '../common/StatusBadge';
 import { formatDate, formatTime, formatDistance, formatAddress } from '../../utils/formatters';
-import { RIDE_TYPE_LABELS, PM_APPROVAL_THRESHOLD_KM } from '../../utils/constants';
+import { RIDE_TYPE_LABELS, PM_APPROVAL_THRESHOLD_KM, VEHICLE_TYPE_LABELS } from '../../utils/constants';
 
 const RideApprovalCard = ({ 
   ride, 
@@ -27,38 +27,32 @@ const RideApprovalCard = ({
   onReassign,
   showAssign = false,
   showReassign = false,
-  type = 'approval', // 'approval', 'assignment', or 'assigned'
-  userRole = null // Pass current user's role
+  type = 'approval',
+  userRole = null
 }) => {
   const isLongDistance = ride.calculatedDistance > PM_APPROVAL_THRESHOLD_KM;
   const [approvalNote, setApprovalNote] = useState('');
   const [showNoteInput, setShowNoteInput] = useState(false);
   const [noteError, setNoteError] = useState('');
 
-  // Determine if note is required
   const requiresNote = isLongDistance && userRole === 'admin' && type === 'approval';
 
   const handleApproveClick = () => {
-    // Admin approving long-distance ride needs note
     if (requiresNote) {
       setShowNoteInput(true);
     } else {
-      // PM or short-distance approval (no note needed)
       onApprove?.(ride);
     }
   };
 
   const handleSubmitApproval = () => {
-    // Validate note for long-distance admin approvals
     if (requiresNote && (!approvalNote || approvalNote.trim() === '')) {
       setNoteError('Approval note is required for long-distance rides (>15km)');
       return;
     }
     
-    // Call approval with note (or empty string for PM/short rides)
     onApprove?.(ride, approvalNote.trim());
     
-    // Reset state
     setShowNoteInput(false);
     setApprovalNote('');
     setNoteError('');
@@ -150,6 +144,21 @@ const RideApprovalCard = ({
         </div>
       </div>
 
+      {/* ✅ NEW: Required Vehicle Type Display */}
+      {ride.requiredVehicleType && (
+        <div className="flex items-center gap-3 p-3 bg-gradient-to-r from-purple-50 to-pink-50 rounded-lg mb-4">
+          <div className="w-10 h-10 bg-purple-500 rounded-lg flex items-center justify-center">
+            <FiTruck className="w-5 h-5 text-white" />
+          </div>
+          <div className="flex-1">
+            <p className="text-xs font-semibold text-purple-600 uppercase">Required Vehicle Type</p>
+            <p className="font-medium text-gray-900">
+              {VEHICLE_TYPE_LABELS[ride.requiredVehicleType] || ride.requiredVehicleType}
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* Locations */}
       <div className="space-y-3 mb-4">
         <div className="flex items-start gap-3">
@@ -189,6 +198,15 @@ const RideApprovalCard = ({
           <FiClock className="w-4 h-4 text-gray-500" />
           <span className="text-sm font-medium text-gray-900">{formatTime(ride.scheduledTime)}</span>
         </div>
+        {/* ✅ NEW: Show vehicle type in schedule bar */}
+        {ride.requiredVehicleType && (
+          <div className="flex items-center gap-2">
+            <FiTruck className="w-4 h-4 text-gray-500" />
+            <span className="text-sm font-medium text-gray-900">
+              {VEHICLE_TYPE_LABELS[ride.requiredVehicleType]}
+            </span>
+          </div>
+        )}
       </div>
 
       {/* Driver Info (if assigned) */}
@@ -212,7 +230,7 @@ const RideApprovalCard = ({
         </div>
       )}
 
-      {/* Approval Note Input (for Admin approving long distance rides) */}
+      {/* Approval Note Input */}
       <AnimatePresence>
         {showNoteInput && requiresNote && (
           <motion.div
@@ -274,7 +292,6 @@ const RideApprovalCard = ({
 
       {/* Actions */}
       <div className="flex flex-col sm:flex-row gap-2 pt-4 border-t border-gray-100">
-        {/* Approval Buttons */}
         {type === 'approval' && !showNoteInput && (
           <>
             <button
@@ -294,7 +311,6 @@ const RideApprovalCard = ({
           </>
         )}
 
-        {/* Assignment Button */}
         {type === 'assignment' && (
           <button
             onClick={() => onAssign?.(ride)}
@@ -305,7 +321,6 @@ const RideApprovalCard = ({
           </button>
         )}
 
-        {/* Reassignment Button */}
         {(showReassign || type === 'assigned') && (
           <button
             onClick={() => onReassign?.(ride)}
@@ -316,7 +331,6 @@ const RideApprovalCard = ({
           </button>
         )}
 
-        {/* View Map Button - Always show if not in note input mode */}
         {!showNoteInput && (
           <button
             onClick={() => onViewMap?.(ride)}
