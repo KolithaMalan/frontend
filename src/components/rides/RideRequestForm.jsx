@@ -413,19 +413,30 @@ const RideRequestForm = ({ isOpen, onClose, onSuccess }) => {
     setStep((prev) => prev - 1);
   };
 
-  const handleSubmit = async () => {
+const handleSubmit = async () => {
     if (!validateStep3()) return;
 
     setLoading(true);
     try {
+      // ✅ FIX: Format date as YYYY-MM-DD string (no timezone conversion)
+      const formatDateForAPI = (date) => {
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+      };
+
       const payload = {
         rideType: formData.rideType,
         pickupLocation: formData.pickupLocation,
         destinationLocation: formData.destinationLocation,
-        scheduledDate: formData.scheduledDate.toISOString(),
+        scheduledDate: formatDateForAPI(formData.scheduledDate),  // ✅ FIXED
         scheduledTime: formData.scheduledTime,
-        distance: distance, // Send calculated road distance
+        distance: distance,
       };
+
+      // ✅ Debug log
+      console.log('📅 Submitting ride with date:', payload.scheduledDate);
 
       await ridesAPI.create(payload);
       toast.success('Ride request submitted successfully!');
