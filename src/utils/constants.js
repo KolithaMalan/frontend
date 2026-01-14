@@ -51,6 +51,12 @@ export const RIDE_TYPE_LABELS = {
   [RIDE_TYPES.RETURN]: 'Return Trip',
 };
 
+export const VEHICLE_TYPES = {
+  VAN: 'van',
+  CAB: 'cab',
+  LAND_MASTER: 'land_master'
+};
+
 // User Roles
 export const ROLES = {
   USER: 'user',
