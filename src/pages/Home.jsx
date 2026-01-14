@@ -115,7 +115,7 @@ const Home = () => {
               </span>
 
               <h1 className="text-5xl lg:text-6xl font-bold text-gray-900 leading-tight mb-6">
-                Sobadhanavi Vehicle &{' '}
+                Sobadhanavi Vehicle{' '}
                 <span className="text-gradient">Management</span>
               </h1>
 
