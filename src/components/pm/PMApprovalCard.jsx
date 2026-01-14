@@ -12,10 +12,11 @@ import {
   FiX,
   FiMap,
   FiAlertTriangle,
+  FiTruck,  // ✅ ADD THIS
 } from 'react-icons/fi';
 import StatusBadge from '../common/StatusBadge';
 import { formatDate, formatTime, formatDistance, formatPhone, formatAddress } from '../../utils/formatters';
-import { RIDE_TYPE_LABELS, PM_APPROVAL_THRESHOLD_KM } from '../../utils/constants';
+import { RIDE_TYPE_LABELS, PM_APPROVAL_THRESHOLD_KM, VEHICLE_TYPE_LABELS } from '../../utils/constants';
 
 const PMApprovalCard = ({ ride, onApprove, onReject, onViewMap, loading = false }) => {
   const exceedsThreshold = ride.calculatedDistance > PM_APPROVAL_THRESHOLD_KM;
@@ -57,6 +58,21 @@ const PMApprovalCard = ({ ride, onApprove, onReject, onViewMap, loading = false 
               <p className="text-sm text-amber-700">
                 This {ride.rideType === 'return' ? 'return trip' : 'ride'} is {formatDistance(ride.calculatedDistance)}, 
                 exceeding the {PM_APPROVAL_THRESHOLD_KM}km threshold and requires your approval.
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* ✅ NEW: Required Vehicle Type Display */}
+        {ride.requiredVehicleType && (
+          <div className="flex items-center gap-3 p-4 bg-gradient-to-r from-purple-50 to-pink-50 border border-purple-200 rounded-xl">
+            <div className="w-12 h-12 bg-purple-500 rounded-xl flex items-center justify-center flex-shrink-0">
+              <FiTruck className="w-6 h-6 text-white" />
+            </div>
+            <div className="flex-1">
+              <p className="text-xs font-semibold text-purple-600 uppercase mb-1">Required Vehicle Type</p>
+              <p className="text-lg font-bold text-gray-900">
+                {VEHICLE_TYPE_LABELS[ride.requiredVehicleType] || ride.requiredVehicleType}
               </p>
             </div>
           </div>
@@ -119,8 +135,8 @@ const PMApprovalCard = ({ ride, onApprove, onReject, onViewMap, loading = false 
           </div>
         </div>
 
-        {/* Schedule */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 py-4 border-y border-gray-100">
+        {/* ✅ UPDATED: Schedule with Vehicle Type */}
+        <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 py-4 border-y border-gray-100">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center">
               <FiCalendar className="w-5 h-5 text-gray-600" />
@@ -139,6 +155,18 @@ const PMApprovalCard = ({ ride, onApprove, onReject, onViewMap, loading = false 
               <p className="font-semibold text-gray-900">{formatTime(ride.scheduledTime)}</p>
             </div>
           </div>
+          {/* ✅ NEW: Vehicle Type in Schedule Grid */}
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
+              <FiTruck className="w-5 h-5 text-purple-600" />
+            </div>
+            <div>
+              <p className="text-xs text-gray-500">Vehicle Type</p>
+              <p className="font-semibold text-gray-900">
+                {VEHICLE_TYPE_LABELS[ride.requiredVehicleType] || '-'}
+              </p>
+            </div>
+          </div>
           <div className="flex items-center gap-3 sm:justify-end">
             <div>
               <p className="text-xs text-gray-500">Created</p>
@@ -147,7 +175,7 @@ const PMApprovalCard = ({ ride, onApprove, onReject, onViewMap, loading = false 
           </div>
         </div>
 
-        {/* Actions - FIXED BUTTONS */}
+        {/* Actions */}
         <div className="flex flex-col sm:flex-row gap-3 pt-2">
           <button
             onClick={() => onApprove?.(ride)}
