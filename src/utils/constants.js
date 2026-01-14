@@ -51,11 +51,26 @@ export const RIDE_TYPE_LABELS = {
   [RIDE_TYPES.RETURN]: 'Return Trip',
 };
 
+// ✅ Vehicle Types (Object format for form values)
 export const VEHICLE_TYPES = {
   VAN: 'van',
   CAB: 'cab',
   LAND_MASTER: 'land_master'
 };
+
+// ✅ Vehicle Type Labels (for display)
+export const VEHICLE_TYPE_LABELS = {
+  van: 'Van',
+  cab: 'Cab',
+  land_master: 'Land Master'
+};
+
+// ✅ Vehicle Type Options (for dropdowns)
+export const VEHICLE_TYPE_OPTIONS = [
+  { value: 'van', label: 'Van' },
+  { value: 'cab', label: 'Cab' },
+  { value: 'land_master', label: 'Land Master' }
+];
 
 // User Roles
 export const ROLES = {
@@ -117,8 +132,8 @@ export const DRIVER_STATUS_COLORS = {
   [DRIVER_STATUS.OFFLINE]: 'gray',
 };
 
-// Vehicle Types
-export const VEHICLE_TYPES = ['Car', 'Van','Cab','Crew Cab'];
+// ❌ REMOVED: Duplicate VEHICLE_TYPES array
+// export const VEHICLE_TYPES = ['Car', 'Van','Cab','Crew Cab'];
 
 // Max values
 export const MAX_PENDING_RIDES = 3;
