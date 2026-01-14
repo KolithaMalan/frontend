@@ -12,12 +12,13 @@ import {
   FiCheck,
   FiSearch,
   FiX,
+  FiTruck,  // ✅ ADD THIS
 } from 'react-icons/fi';
 import Modal from '../common/Modal';
 import { ridesAPI } from '../../services/api';
 import { getBookingDateRange } from '../../utils/helpers';
 import { formatDistance } from '../../utils/formatters';
-import { PM_APPROVAL_THRESHOLD_KM, RIDE_TYPES } from '../../utils/constants';
+import { PM_APPROVAL_THRESHOLD_KM, RIDE_TYPES, VEHICLE_TYPE_OPTIONS, VEHICLE_TYPE_LABELS } from '../../utils/constants';
 import toast from 'react-hot-toast';
 
 // Google Maps Script Loader
@@ -86,7 +87,7 @@ const GoogleLocationSearch = ({
     try {
       const request = {
         input: query,
-        componentRestrictions: { country: 'lk' }, // Restrict to Sri Lanka
+        componentRestrictions: { country: 'lk' },
         types: ['geocode', 'establishment'],
       };
 
@@ -114,7 +115,6 @@ const GoogleLocationSearch = ({
   const handleSelectPlace = (place) => {
     if (!googleMaps) return;
 
-    // Create a temporary div for PlacesService
     const tempDiv = document.createElement('div');
     if (!placesService.current) {
       placesService.current = new googleMaps.places.PlacesService(tempDiv);
@@ -181,7 +181,6 @@ const GoogleLocationSearch = ({
         )}
       </div>
 
-      {/* Suggestions Dropdown */}
       <AnimatePresence>
         {showSuggestions && suggestions.length > 0 && (
           <motion.div
@@ -238,11 +237,10 @@ const SimpleMapDisplay = ({ pickup, destination, distance }) => {
   useEffect(() => {
     if (!window.google || !mapRef.current) return;
 
-    // Initialize map
     if (!mapInstanceRef.current) {
       mapInstanceRef.current = new window.google.maps.Map(mapRef.current, {
         zoom: 10,
-        center: { lat: 6.9271, lng: 79.8612 }, // Colombo center
+        center: { lat: 6.9271, lng: 79.8612 },
         mapTypeControl: false,
         streetViewControl: false,
         fullscreenControl: false,
@@ -257,7 +255,6 @@ const SimpleMapDisplay = ({ pickup, destination, distance }) => {
       directionsRendererRef.current.setMap(mapInstanceRef.current);
     }
 
-    // Show route if both locations are set
     if (pickup?.coordinates && destination?.coordinates) {
       const directionsService = new window.google.maps.DirectionsService();
       
@@ -308,6 +305,7 @@ const RideRequestForm = ({ isOpen, onClose, onSuccess }) => {
     destinationLocation: null,
     scheduledDate: null,
     scheduledTime: '',
+    requiredVehicleType: '',  // ✅ ADD THIS
   });
   const [errors, setErrors] = useState({});
   const [distance, setDistance] = useState(null);
@@ -350,7 +348,6 @@ const RideRequestForm = ({ isOpen, onClose, onSuccess }) => {
           const distanceInMeters = result.routes[0].legs[0].distance.value;
           const distanceInKm = distanceInMeters / 1000;
           
-          // For return trips, multiply by 2
           const calculatedDist = formData.rideType === 'return' ? distanceInKm * 2 : distanceInKm;
           setDistance(calculatedDist);
         } else {
@@ -389,6 +386,7 @@ const RideRequestForm = ({ isOpen, onClose, onSuccess }) => {
     return Object.keys(newErrors).length === 0;
   };
 
+  // ✅ UPDATED: Validate Step 3 with vehicle type
   const validateStep3 = () => {
     const newErrors = {};
     if (!formData.scheduledDate) {
@@ -396,6 +394,9 @@ const RideRequestForm = ({ isOpen, onClose, onSuccess }) => {
     }
     if (!formData.scheduledTime) {
       newErrors.scheduledTime = 'Please select a time';
+    }
+    if (!formData.requiredVehicleType) {
+      newErrors.requiredVehicleType = 'Please select a vehicle type';
     }
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -413,12 +414,13 @@ const RideRequestForm = ({ isOpen, onClose, onSuccess }) => {
     setStep((prev) => prev - 1);
   };
 
-const handleSubmit = async () => {
+  // ✅ UPDATED: Submit with vehicle type and fixed date
+  const handleSubmit = async () => {
     if (!validateStep3()) return;
 
     setLoading(true);
     try {
-      // ✅ FIX: Format date as YYYY-MM-DD string (no timezone conversion)
+      // ✅ FIX: Format date as YYYY-MM-DD to prevent timezone issues
       const formatDateForAPI = (date) => {
         const year = date.getFullYear();
         const month = String(date.getMonth() + 1).padStart(2, '0');
@@ -430,13 +432,13 @@ const handleSubmit = async () => {
         rideType: formData.rideType,
         pickupLocation: formData.pickupLocation,
         destinationLocation: formData.destinationLocation,
-        scheduledDate: formatDateForAPI(formData.scheduledDate),  // ✅ FIXED
+        scheduledDate: formatDateForAPI(formData.scheduledDate),
         scheduledTime: formData.scheduledTime,
         distance: distance,
+        requiredVehicleType: formData.requiredVehicleType,  // ✅ ADD THIS
       };
 
-      // ✅ Debug log
-      console.log('📅 Submitting ride with date:', payload.scheduledDate);
+      console.log('📅 Submitting ride request:', payload);
 
       await ridesAPI.create(payload);
       toast.success('Ride request submitted successfully!');
@@ -450,6 +452,7 @@ const handleSubmit = async () => {
     }
   };
 
+  // ✅ UPDATED: Reset with vehicle type
   const handleClose = () => {
     setStep(1);
     setFormData({
@@ -458,6 +461,7 @@ const handleSubmit = async () => {
       destinationLocation: null,
       scheduledDate: null,
       scheduledTime: '',
+      requiredVehicleType: '',  // ✅ ADD THIS
     });
     setErrors({});
     setDistance(null);
@@ -601,7 +605,6 @@ const handleSubmit = async () => {
                 </p>
               </div>
 
-              {/* Pickup Location */}
               <GoogleLocationSearch
                 value={formData.pickupLocation}
                 onChange={(location) => handleChange('pickupLocation', location)}
@@ -613,7 +616,6 @@ const handleSubmit = async () => {
                 googleMaps={googleMaps}
               />
 
-              {/* Destination Location */}
               <GoogleLocationSearch
                 value={formData.destinationLocation}
                 onChange={(location) => handleChange('destinationLocation', location)}
@@ -625,7 +627,6 @@ const handleSubmit = async () => {
                 googleMaps={googleMaps}
               />
 
-              {/* Map Preview */}
               {googleMaps && (formData.pickupLocation || formData.destinationLocation) && (
                 <SimpleMapDisplay
                   pickup={formData.pickupLocation}
@@ -634,7 +635,6 @@ const handleSubmit = async () => {
                 />
               )}
 
-              {/* Distance Info */}
               {distanceLoading && (
                 <div className="p-4 rounded-xl bg-gray-50 flex items-center gap-3">
                   <div className="w-5 h-5 border-2 border-gray-300 border-t-primary-500 rounded-full animate-spin"></div>
@@ -668,7 +668,7 @@ const handleSubmit = async () => {
             </motion.div>
           )}
 
-          {/* Step 3: Schedule */}
+          {/* ✅ UPDATED Step 3: Schedule + Vehicle Type */}
           {step === 3 && (
             <motion.div
               key="step3"
@@ -682,7 +682,7 @@ const handleSubmit = async () => {
                   Schedule Your Ride
                 </h3>
                 <p className="text-gray-500 text-sm mb-4">
-                  Select the date and time for your trip (within 14 days).
+                  Select the date, time, and vehicle type for your trip.
                 </p>
               </div>
 
@@ -731,11 +731,37 @@ const handleSubmit = async () => {
                 </div>
               </div>
 
-              {/* Summary */}
+              {/* ✅ NEW: Vehicle Type Dropdown */}
+              <div>
+                <label className="label">Required Vehicle Type</label>
+                <div className="relative">
+                  <FiTruck className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
+                  <select
+                    value={formData.requiredVehicleType}
+                    onChange={(e) => handleChange('requiredVehicleType', e.target.value)}
+                    className={`input select pl-12 ${errors.requiredVehicleType ? 'input-error' : ''}`}
+                  >
+                    <option value="">Select vehicle type</option>
+                    {VEHICLE_TYPE_OPTIONS.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                {errors.requiredVehicleType && (
+                  <p className="mt-1 text-sm text-red-500 flex items-center gap-1">
+                    <FiAlertCircle className="w-4 h-4" />
+                    {errors.requiredVehicleType}
+                  </p>
+                )}
+              </div>
+
+              {/* ✅ UPDATED Summary with Vehicle Type */}
               <div className="bg-gray-50 rounded-xl p-4 space-y-3">
                 <h4 className="font-semibold text-gray-900">Ride Summary</h4>
                 
-                <div className="grid grid-cols-2 gap-4 text-sm">
+                <div className="grid grid-cols-3 gap-4 text-sm">
                   <div>
                     <p className="text-gray-500">Trip Type</p>
                     <p className="font-medium text-gray-900">
@@ -745,6 +771,13 @@ const handleSubmit = async () => {
                   <div>
                     <p className="text-gray-500">Road Distance</p>
                     <p className="font-medium text-gray-900">{formatDistance(distance)}</p>
+                  </div>
+                  {/* ✅ NEW: Vehicle Type in Summary */}
+                  <div>
+                    <p className="text-gray-500">Vehicle Type</p>
+                    <p className="font-medium text-gray-900">
+                      {VEHICLE_TYPE_LABELS[formData.requiredVehicleType] || '-'}
+                    </p>
                   </div>
                 </div>
 
