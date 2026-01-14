@@ -12,7 +12,7 @@ import {
 } from 'react-icons/fi';
 import StatusBadge from '../common/StatusBadge';
 import { formatDate, formatTime, formatDistance, formatAddress } from '../../utils/formatters';
-import { RIDE_TYPE_LABELS } from '../../utils/constants';
+import { RIDE_TYPE_LABELS, VEHICLE_TYPE_LABELS } from '../../utils/constants';
 
 const RideCard = ({ 
   ride, 
@@ -98,6 +98,21 @@ const RideCard = ({
           <StatusBadge status={ride.status} type="ride" size="md" />
         </div>
       </div>
+
+      {/* ✅ NEW: Required Vehicle Type Display */}
+      {ride.requiredVehicleType && (
+        <div className="flex items-center gap-3 p-3 bg-purple-50 border border-purple-100 rounded-lg mb-4">
+          <div className="w-8 h-8 bg-purple-500 rounded-lg flex items-center justify-center">
+            <FiTruck className="w-4 h-4 text-white" />
+          </div>
+          <div>
+            <p className="text-xs font-medium text-purple-600 uppercase">Vehicle Type</p>
+            <p className="text-sm font-semibold text-gray-900">
+              {VEHICLE_TYPE_LABELS[ride.requiredVehicleType] || ride.requiredVehicleType}
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* Locations */}
       <div className="space-y-3 mb-4">
