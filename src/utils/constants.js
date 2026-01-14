@@ -112,7 +112,7 @@ export const DRIVER_STATUS_COLORS = {
 };
 
 // Vehicle Types
-export const VEHICLE_TYPES = ['Car', 'Van', 'Bus', 'SUV'];
+export const VEHICLE_TYPES = ['Car', 'Van','Cab','Crew Cab'];
 
 // Max values
 export const MAX_PENDING_RIDES = 3;
