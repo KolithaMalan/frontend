@@ -420,11 +420,11 @@ const Home = () => {
               <ul className="space-y-3">
                 <li className="flex items-center gap-3 text-gray-400">
                   <FiPhone className="w-5 h-5" />
-                  <span>+94 77 123 4567</span>
+                  <span>+94 77 856 1467</span>
                 </li>
                 <li className="flex items-center gap-3 text-gray-400">
                   <FiMail className="w-5 h-5" />
-                  <span>info@ridemanager.lk</span>
+                  <span>sobadhanavi.ride.management@gmail.com</span>
                 </li>
                 <li className="flex items-center gap-3 text-gray-400">
                   <FiGlobe className="w-5 h-5" />
