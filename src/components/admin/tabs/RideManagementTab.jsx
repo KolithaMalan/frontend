@@ -13,7 +13,6 @@ import EmptyState from '../../common/EmptyState';
 import RideApprovalCard from '../RideApprovalCard';
 import AssignmentForm from '../AssignmentForm';
 import AssignmentCard from '../AssignmentCard';
-import ConfirmDialog from '../../common/ConfirmDialog';
 import MapComponent from '../../maps/MapComponent';
 import Modal from '../../common/Modal';
 import toast from 'react-hot-toast';
@@ -29,9 +28,7 @@ const RideManagementTab = () => {
   const [selectedRide, setSelectedRide] = useState(null);
   const [showAssignModal, setShowAssignModal] = useState(false);
   const [isReassigning, setIsReassigning] = useState(false);
-  const [showRejectDialog, setShowRejectDialog] = useState(false);
   const [showMapModal, setShowMapModal] = useState(false);
-  const [rejectLoading, setRejectLoading] = useState(false);
 
   const fetchData = useCallback(async (showLoader = true) => {
     try {
@@ -41,7 +38,7 @@ const RideManagementTab = () => {
       const [awaitingRes, readyRes, assignedRes] = await Promise.all([
         ridesAPI.getAwaitingAdmin(),
         ridesAPI.getReadyForAssignment(),
-        ridesAPI.getAll({ status: 'assigned', limit: 50 }), // Get assigned rides
+        ridesAPI.getAll({ status: 'assigned', limit: 50 }),
       ]);
 
       setAwaitingApproval(awaitingRes.data.rides);
@@ -59,7 +56,6 @@ const RideManagementTab = () => {
   useEffect(() => {
     fetchData();
 
-    // Auto-refresh every 30 seconds
     const interval = setInterval(() => {
       fetchData(false);
     }, 30000);
@@ -71,10 +67,10 @@ const RideManagementTab = () => {
     fetchData(false);
   };
 
-  // ✅ UPDATED: Accept note parameter (for >15km rides)
+  // ✅ Handle Approve (with optional note for long distance)
   const handleApprove = async (ride, note = '') => {
     try {
-      await ridesAPI.adminApprove(ride._id, note); // Pass note to API
+      await ridesAPI.adminApprove(ride._id, note);
       toast.success(`Ride #${ride.rideId} approved successfully!`);
       fetchData(false);
     } catch (error) {
@@ -82,25 +78,14 @@ const RideManagementTab = () => {
     }
   };
 
-  const handleReject = (ride) => {
-    setSelectedRide(ride);
-    setShowRejectDialog(true);
-  };
-
-  const confirmReject = async () => {
-    if (!selectedRide) return;
-
-    setRejectLoading(true);
+  // ✅ UPDATED: Handle Reject with required reason
+  const handleReject = async (ride, reason) => {
     try {
-      await ridesAPI.adminReject(selectedRide._id);
-      toast.success('Ride rejected');
-      setShowRejectDialog(false);
-      setSelectedRide(null);
+      await ridesAPI.adminReject(ride._id, reason);
+      toast.success(`Ride #${ride.rideId} rejected. Requester has been notified.`);
       fetchData(false);
     } catch (error) {
-      toast.error('Failed to reject ride');
-    } finally {
-      setRejectLoading(false);
+      toast.error(error.response?.data?.message || 'Failed to reject ride');
     }
   };
 
@@ -169,9 +154,9 @@ const RideManagementTab = () => {
                 key={ride._id}
                 ride={ride}
                 type="approval"
-                userRole="admin" // ✅ NEW: Pass admin role
-                onApprove={handleApprove} // Now accepts note parameter
-                onReject={handleReject}
+                userRole="admin"
+                onApprove={handleApprove}
+                onReject={handleReject}  {/* ✅ Now passes reason */}
                 onViewMap={handleViewMap}
               />
             ))}
@@ -277,21 +262,7 @@ const RideManagementTab = () => {
         isReassign={isReassigning}
       />
 
-      {/* Reject Confirmation */}
-      <ConfirmDialog
-        isOpen={showRejectDialog}
-        onClose={() => {
-          setShowRejectDialog(false);
-          setSelectedRide(null);
-        }}
-        onConfirm={confirmReject}
-        title="Reject Ride"
-        message={`Are you sure you want to reject ride #${selectedRide?.rideId}? The requester will be notified.`}
-        confirmText="Reject"
-        cancelText="Cancel"
-        type="danger"
-        loading={rejectLoading}
-      />
+      {/* ✅ REMOVED: Old ConfirmDialog - rejection now handled in RideApprovalCard */}
 
       {/* Map Modal */}
       <Modal
