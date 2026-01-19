@@ -156,7 +156,7 @@ const RideManagementTab = () => {
                 type="approval"
                 userRole="admin"
                 onApprove={handleApprove}
-                onReject={handleReject}  {/* ✅ Now passes reason */}
+                onReject={handleReject}
                 onViewMap={handleViewMap}
               />
             ))}
