@@ -5,7 +5,6 @@ import {
   FiNavigation,
   FiCalendar,
   FiClock,
-  FiUser,
   FiCheck,
   FiX,
   FiMap,
@@ -31,22 +30,33 @@ const RideApprovalCard = ({
   userRole = null
 }) => {
   const isLongDistance = ride.calculatedDistance > PM_APPROVAL_THRESHOLD_KM;
+  
+  // Approval note state
   const [approvalNote, setApprovalNote] = useState('');
   const [showNoteInput, setShowNoteInput] = useState(false);
   const [noteError, setNoteError] = useState('');
 
-  const requiresNote = isLongDistance && userRole === 'admin' && type === 'approval';
+  // ✅ Rejection reason state
+  const [rejectionReason, setRejectionReason] = useState('');
+  const [showRejectInput, setShowRejectInput] = useState(false);
+  const [rejectError, setRejectError] = useState('');
 
+  const requiresApprovalNote = isLongDistance && userRole === 'admin' && type === 'approval';
+
+  // =====================
+  // APPROVAL HANDLERS
+  // =====================
   const handleApproveClick = () => {
-    if (requiresNote) {
+    if (requiresApprovalNote) {
       setShowNoteInput(true);
+      setShowRejectInput(false);
     } else {
       onApprove?.(ride);
     }
   };
 
   const handleSubmitApproval = () => {
-    if (requiresNote && (!approvalNote || approvalNote.trim() === '')) {
+    if (requiresApprovalNote && (!approvalNote || approvalNote.trim() === '')) {
       setNoteError('Approval note is required for long-distance rides (>15km)');
       return;
     }
@@ -62,6 +72,40 @@ const RideApprovalCard = ({
     setShowNoteInput(false);
     setApprovalNote('');
     setNoteError('');
+  };
+
+  // =====================
+  // REJECTION HANDLERS
+  // =====================
+  const handleRejectClick = () => {
+    setShowRejectInput(true);
+    setShowNoteInput(false);
+    setRejectionReason('');
+    setRejectError('');
+  };
+
+  const handleSubmitRejection = () => {
+    if (!rejectionReason || rejectionReason.trim() === '') {
+      setRejectError('Rejection reason is required');
+      return;
+    }
+    
+    if (rejectionReason.trim().length < 10) {
+      setRejectError('Please provide a more detailed reason (at least 10 characters)');
+      return;
+    }
+    
+    onReject?.(ride, rejectionReason.trim());
+    
+    setShowRejectInput(false);
+    setRejectionReason('');
+    setRejectError('');
+  };
+
+  const handleCancelReject = () => {
+    setShowRejectInput(false);
+    setRejectionReason('');
+    setRejectError('');
   };
 
   return (
@@ -100,7 +144,7 @@ const RideApprovalCard = ({
         </div>
       </div>
 
-      {/* Long Distance Alert - Show for Admin */}
+      {/* Long Distance Alert - Admin */}
       {isLongDistance && type === 'approval' && userRole === 'admin' && (
         <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 mb-4">
           <div className="flex items-start gap-3">
@@ -116,7 +160,7 @@ const RideApprovalCard = ({
         </div>
       )}
 
-      {/* Long Distance Alert - Show for PM */}
+      {/* Long Distance Alert - PM */}
       {isLongDistance && type === 'approval' && userRole === 'project_manager' && (
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
           <div className="flex items-start gap-3">
@@ -124,7 +168,7 @@ const RideApprovalCard = ({
             <div>
               <p className="text-sm font-medium text-blue-900">PM Approval Required</p>
               <p className="text-sm text-blue-700 mt-0.5">
-                This {ride.rideType === 'return' ? 'return trip' : 'ride'} is {ride.calculatedDistance} km and requires your approval.
+                This ride is {ride.calculatedDistance} km and requires your approval.
               </p>
             </div>
           </div>
@@ -144,7 +188,7 @@ const RideApprovalCard = ({
         </div>
       </div>
 
-      {/* ✅ NEW: Required Vehicle Type Display */}
+      {/* Vehicle Type */}
       {ride.requiredVehicleType && (
         <div className="flex items-center gap-3 p-3 bg-gradient-to-r from-purple-50 to-pink-50 rounded-lg mb-4">
           <div className="w-10 h-10 bg-purple-500 rounded-lg flex items-center justify-center">
@@ -189,7 +233,7 @@ const RideApprovalCard = ({
       </div>
 
       {/* Schedule */}
-      <div className="flex items-center gap-6 py-3 px-3 bg-gray-50 rounded-lg mb-4">
+      <div className="flex flex-wrap items-center gap-4 py-3 px-3 bg-gray-50 rounded-lg mb-4">
         <div className="flex items-center gap-2">
           <FiCalendar className="w-4 h-4 text-gray-500" />
           <span className="text-sm font-medium text-gray-900">{formatDate(ride.scheduledDate)}</span>
@@ -198,7 +242,6 @@ const RideApprovalCard = ({
           <FiClock className="w-4 h-4 text-gray-500" />
           <span className="text-sm font-medium text-gray-900">{formatTime(ride.scheduledTime)}</span>
         </div>
-        {/* ✅ NEW: Show vehicle type in schedule bar */}
         {ride.requiredVehicleType && (
           <div className="flex items-center gap-2">
             <FiTruck className="w-4 h-4 text-gray-500" />
@@ -230,19 +273,25 @@ const RideApprovalCard = ({
         </div>
       )}
 
-      {/* Approval Note Input */}
+      {/* ===================== */}
+      {/* APPROVAL NOTE INPUT */}
+      {/* ===================== */}
       <AnimatePresence>
-        {showNoteInput && requiresNote && (
+        {showNoteInput && (
           <motion.div
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: 'auto' }}
             exit={{ opacity: 0, height: 0 }}
-            className="mb-4 p-4 bg-amber-50 border border-amber-200 rounded-lg"
+            className="mb-4 p-4 bg-amber-50 border border-amber-200 rounded-lg overflow-hidden"
           >
             <div className="flex items-center gap-2 mb-3">
               <FiFileText className="w-5 h-5 text-amber-600" />
               <h4 className="font-semibold text-amber-900">Admin Approval Note Required</h4>
             </div>
+            
+            <p className="text-sm text-amber-700 mb-3">
+              This is a long-distance ride. Please provide a reason for approving this ride.
+            </p>
             
             <textarea
               value={approvalNote}
@@ -250,11 +299,11 @@ const RideApprovalCard = ({
                 setApprovalNote(e.target.value);
                 setNoteError('');
               }}
-              placeholder="Please provide a reason for approving this long-distance ride..."
+              placeholder="Enter approval reason..."
               className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 resize-none ${
                 noteError ? 'border-red-500' : 'border-gray-300'
               }`}
-              rows={4}
+              rows={3}
               maxLength={500}
             />
             
@@ -282,7 +331,7 @@ const RideApprovalCard = ({
                   className="btn btn-success btn-sm"
                 >
                   <FiCheck className="w-4 h-4 mr-1" />
-                  Submit Approval
+                  Approve
                 </button>
               </div>
             </div>
@@ -290,19 +339,89 @@ const RideApprovalCard = ({
         )}
       </AnimatePresence>
 
-      {/* Actions */}
+      {/* ===================== */}
+      {/* REJECTION REASON INPUT */}
+      {/* ===================== */}
+      <AnimatePresence>
+        {showRejectInput && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg overflow-hidden"
+          >
+            <div className="flex items-center gap-2 mb-3">
+              <FiX className="w-5 h-5 text-red-600" />
+              <h4 className="font-semibold text-red-900">Rejection Reason Required</h4>
+            </div>
+            
+            <p className="text-sm text-red-700 mb-3">
+              Please provide a reason for rejecting this ride. The requester will be notified with this reason via SMS and Email.
+            </p>
+            
+            <textarea
+              value={rejectionReason}
+              onChange={(e) => {
+                setRejectionReason(e.target.value);
+                setRejectError('');
+              }}
+              placeholder="Enter the reason for rejecting this ride request..."
+              className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 resize-none ${
+                rejectError ? 'border-red-500' : 'border-gray-300'
+              }`}
+              rows={3}
+              maxLength={500}
+              autoFocus
+            />
+            
+            {rejectError && (
+              <p className="text-sm text-red-600 mt-2 flex items-center gap-1">
+                <FiAlertTriangle className="w-4 h-4" />
+                {rejectError}
+              </p>
+            )}
+            
+            <div className="flex items-center justify-between mt-3">
+              <p className="text-xs text-gray-500">
+                {rejectionReason.length}/500 characters (minimum 10)
+              </p>
+              
+              <div className="flex gap-2">
+                <button
+                  onClick={handleCancelReject}
+                  className="btn btn-outline btn-sm"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleSubmitRejection}
+                  className="btn btn-danger btn-sm"
+                >
+                  <FiX className="w-4 h-4 mr-1" />
+                  Confirm Rejection
+                </button>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ===================== */}
+      {/* ACTION BUTTONS */}
+      {/* ===================== */}
       <div className="flex flex-col sm:flex-row gap-2 pt-4 border-t border-gray-100">
-        {type === 'approval' && !showNoteInput && (
+        {/* Approval/Rejection Buttons - Only show when no input is open */}
+        {type === 'approval' && !showNoteInput && !showRejectInput && (
           <>
             <button
               onClick={handleApproveClick}
               className="btn btn-success flex-1"
             >
               <FiCheck className="w-5 h-5 mr-2" />
-              {requiresNote ? 'Approve with Note' : 'Approve'}
+              {requiresApprovalNote ? 'Approve with Note' : 'Approve'}
             </button>
             <button
-              onClick={() => onReject?.(ride)}
+              onClick={handleRejectClick}
               className="btn btn-danger flex-1"
             >
               <FiX className="w-5 h-5 mr-2" />
@@ -311,6 +430,7 @@ const RideApprovalCard = ({
           </>
         )}
 
+        {/* Assignment Button */}
         {type === 'assignment' && (
           <button
             onClick={() => onAssign?.(ride)}
@@ -321,6 +441,7 @@ const RideApprovalCard = ({
           </button>
         )}
 
+        {/* Reassignment Button */}
         {(showReassign || type === 'assigned') && (
           <button
             onClick={() => onReassign?.(ride)}
@@ -331,7 +452,8 @@ const RideApprovalCard = ({
           </button>
         )}
 
-        {!showNoteInput && (
+        {/* View Map - Only show when no input is open */}
+        {!showNoteInput && !showRejectInput && (
           <button
             onClick={() => onViewMap?.(ride)}
             className="btn btn-outline sm:w-auto w-full"
