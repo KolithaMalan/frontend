@@ -15,7 +15,6 @@ import { ridesAPI } from '../../services/api';
 import StatCard from '../../components/common/StatCard';
 import StatusBadge from '../../components/common/StatusBadge';
 import Loader from '../../components/common/Loader';
-import EmptyState from '../../components/common/EmptyState';
 import RideRequestForm from '../../components/rides/RideRequestForm';
 import { formatDate, formatTime, formatDistance, formatRideId } from '../../utils/formatters';
 import { RIDE_TYPE_LABELS } from '../../utils/constants';
@@ -179,17 +178,28 @@ const UserDashboard = () => {
             ))}
           </div>
         ) : (
-          <EmptyState
-            icon={FiTruck}
-            title="No rides yet"
-            description="You haven't requested any rides yet. Click the button above to request your first ride."
-            actionLabel="Request New Ride"
-            onAction={() => setShowRideModal(true)}
-          />
+          <div className="text-center py-12">
+            <div className="inline-flex items-center justify-center w-16 h-16 bg-blue-100 rounded-full mb-4">
+              <FiTruck className="w-8 h-8 text-blue-600" />
+            </div>
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">
+              No rides yet
+            </h3>
+            <p className="text-gray-600 mb-6 max-w-md mx-auto">
+              You haven't requested any rides yet. Click the button below to request your first ride.
+            </p>
+            <button 
+              onClick={() => setShowRideModal(true)} 
+              className="btn btn-primary inline-flex items-center"
+            >
+              <FiPlus className="w-5 h-5 mr-2" />
+              Request New Ride
+            </button>
+          </div>
         )}
       </motion.div>
 
-      {/* Ride Request Modal - FIXED: No wrapper Modal */}
+      {/* Ride Request Modal */}
       <RideRequestForm
         isOpen={showRideModal}
         onClose={() => setShowRideModal(false)}
