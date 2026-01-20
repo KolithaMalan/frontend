@@ -385,7 +385,7 @@ const RideRequestForm = ({ isOpen, onClose, onSuccess }) => {
     return Object.keys(newErrors).length === 0;
   };
 
-  // ✅ UPDATED: Validate Step 3 with time validation
+  // ✅ UPDATED: Validate Step 3 with new rounding logic
   const validateStep3 = () => {
     const newErrors = {};
     
@@ -401,28 +401,41 @@ const RideRequestForm = ({ isOpen, onClose, onSuccess }) => {
       newErrors.requiredVehicleType = 'Please select a vehicle type';
     }
 
-    // ✅ NEW: Validate that time is not in the past for today's date
+    // ✅ UPDATED: Validate time - must be next 30-minute slot or later
     if (formData.scheduledDate && formData.scheduledTime) {
       const now = new Date();
       const selectedDate = new Date(formData.scheduledDate);
       
-      // Check if selected date is today
       const isToday = 
         selectedDate.getFullYear() === now.getFullYear() &&
         selectedDate.getMonth() === now.getMonth() &&
         selectedDate.getDate() === now.getDate();
       
       if (isToday) {
+        const currentHour = now.getHours();
+        const currentMinutes = now.getMinutes();
+        
+        // Calculate next available slot
+        let nextSlotHour = currentHour;
+        let nextSlotMinute;
+        
+        if (currentMinutes >= 0 && currentMinutes <= 29) {
+          nextSlotMinute = 30;
+        } else {
+          nextSlotMinute = 0;
+          nextSlotHour += 1;
+        }
+        
         // Parse selected time
-        const [hours, minutes] = formData.scheduledTime.split(':').map(Number);
-        const selectedDateTime = new Date(selectedDate);
-        selectedDateTime.setHours(hours, minutes, 0, 0);
+        const [selectedHour, selectedMinute] = formData.scheduledTime.split(':').map(Number);
         
-        // Add 30 minutes buffer
-        const minimumTime = new Date(now.getTime() + 30 * 60 * 1000);
+        const selectedTotalMinutes = selectedHour * 60 + selectedMinute;
+        const nextSlotTotalMinutes = nextSlotHour * 60 + nextSlotMinute;
         
-        if (selectedDateTime < minimumTime) {
-          newErrors.scheduledTime = 'Please select a future time (at least 30 minutes from now)';
+        if (selectedTotalMinutes < nextSlotTotalMinutes) {
+          const hour12 = nextSlotHour === 0 ? 12 : nextSlotHour > 12 ? nextSlotHour - 12 : nextSlotHour;
+          const ampm = nextSlotHour < 12 ? 'AM' : 'PM';
+          newErrors.scheduledTime = `Earliest available time is ${hour12}:${nextSlotMinute.toString().padStart(2, '0')} ${ampm}`;
         }
       }
     }
@@ -443,13 +456,11 @@ const RideRequestForm = ({ isOpen, onClose, onSuccess }) => {
     setStep((prev) => prev - 1);
   };
 
-  // ✅ UPDATED: Submit with fixed date format
   const handleSubmit = async () => {
     if (!validateStep3()) return;
 
     setLoading(true);
     try {
-      // ✅ FIX: Format date as YYYY-MM-DD to prevent timezone issues
       const formatDateForAPI = (date) => {
         const year = date.getFullYear();
         const month = String(date.getMonth() + 1).padStart(2, '0');
@@ -516,7 +527,7 @@ const RideRequestForm = ({ isOpen, onClose, onSuccess }) => {
 
   const timeOptions = generateTimeOptions();
 
-  // ✅ NEW: Filter out past times for today
+  // ✅ UPDATED: Filter times - Round up to next 30-minute slot
   const getFilteredTimeOptions = () => {
     if (!formData.scheduledDate) return timeOptions;
     
@@ -530,14 +541,37 @@ const RideRequestForm = ({ isOpen, onClose, onSuccess }) => {
     
     if (!isToday) return timeOptions;
     
-    // Filter out past times + 30 min buffer
-    const minimumTime = new Date(now.getTime() + 30 * 60 * 1000);
+    // Round up to the next 30-minute slot
+    const currentHour = now.getHours();
+    const currentMinutes = now.getMinutes();
+    
+    let nextSlotHour = currentHour;
+    let nextSlotMinute;
+    
+    if (currentMinutes >= 0 && currentMinutes <= 29) {
+      // Between :00 and :29 → next slot is :30 of same hour
+      nextSlotMinute = 30;
+    } else {
+      // Between :30 and :59 → next slot is :00 of next hour
+      nextSlotMinute = 0;
+      nextSlotHour += 1;
+    }
+    
+    // If we've passed 23:30, no times available today
+    if (nextSlotHour >= 24) {
+      return [];
+    }
     
     return timeOptions.filter((time) => {
       const [hours, minutes] = time.value.split(':').map(Number);
-      const optionTime = new Date();
-      optionTime.setHours(hours, minutes, 0, 0);
-      return optionTime >= minimumTime;
+      
+      // If hour is greater than next slot hour, include it
+      if (hours > nextSlotHour) return true;
+      
+      // If same hour, check if minutes are >= next slot minute
+      if (hours === nextSlotHour && minutes >= nextSlotMinute) return true;
+      
+      return false;
     });
   };
 
@@ -745,16 +779,15 @@ const RideRequestForm = ({ isOpen, onClose, onSuccess }) => {
               </div>
 
               <div className="grid grid-cols-2 gap-4">
-                {/* Date Picker */}
+                {/* ✅ UPDATED: Date Picker with fixed icon */}
                 <div>
                   <label className="label">Date</label>
                   <div className="relative">
-                    <FiCalendar className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5 z-10" />
+                    <FiCalendar className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5 pointer-events-none" />
                     <DatePicker
                       selected={formData.scheduledDate}
                       onChange={(date) => {
                         handleChange('scheduledDate', date);
-                        // Reset time when date changes to avoid invalid time
                         handleChange('scheduledTime', '');
                       }}
                       minDate={minDate}
@@ -762,6 +795,8 @@ const RideRequestForm = ({ isOpen, onClose, onSuccess }) => {
                       placeholderText="Select date"
                       className={`input pl-12 w-full ${errors.scheduledDate ? 'input-error' : ''}`}
                       dateFormat="dd/MM/yyyy"
+                      popperClassName="z-50"
+                      popperPlacement="bottom-start"
                     />
                   </div>
                   {errors.scheduledDate && (
@@ -769,11 +804,11 @@ const RideRequestForm = ({ isOpen, onClose, onSuccess }) => {
                   )}
                 </div>
 
-                {/* ✅ UPDATED: Time Picker with filtered options */}
+                {/* Time Picker */}
                 <div>
                   <label className="label">Time</label>
                   <div className="relative">
-                    <FiClock className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
+                    <FiClock className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5 pointer-events-none" />
                     <select
                       value={formData.scheduledTime}
                       onChange={(e) => handleChange('scheduledTime', e.target.value)}
@@ -790,24 +825,6 @@ const RideRequestForm = ({ isOpen, onClose, onSuccess }) => {
                   {errors.scheduledTime && (
                     <p className="mt-1 text-sm text-red-500">{errors.scheduledTime}</p>
                   )}
-                  {/* ✅ NEW: Show info if today is selected */}
-                  {formData.scheduledDate && (() => {
-                    const now = new Date();
-                    const selectedDate = new Date(formData.scheduledDate);
-                    const isToday = 
-                      selectedDate.getFullYear() === now.getFullYear() &&
-                      selectedDate.getMonth() === now.getMonth() &&
-                      selectedDate.getDate() === now.getDate();
-                    
-                    if (isToday) {
-                      return (
-                        <p className="mt-1 text-xs text-amber-600">
-                          * Only future times are shown (30+ min from now)
-                        </p>
-                      );
-                    }
-                    return null;
-                  })()}
                 </div>
               </div>
 
@@ -815,7 +832,7 @@ const RideRequestForm = ({ isOpen, onClose, onSuccess }) => {
               <div>
                 <label className="label">Required Vehicle Type</label>
                 <div className="relative">
-                  <FiTruck className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
+                  <FiTruck className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5 pointer-events-none" />
                   <select
                     value={formData.requiredVehicleType}
                     onChange={(e) => handleChange('requiredVehicleType', e.target.value)}
