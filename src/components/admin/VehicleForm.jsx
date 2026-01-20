@@ -2,17 +2,15 @@ import React, { useState, useEffect } from 'react';
 import { FiTruck, FiHash, FiSave } from 'react-icons/fi';
 import Modal from '../common/Modal';
 import { vehiclesAPI } from '../../services/api';
+import { VEHICLE_TYPE_OPTIONS } from '../../utils/constants'; // ✅ Changed from VEHICLE_TYPES
 import toast from 'react-hot-toast';
-
-// ✅ HARDCODED: Safe fallback vehicle types
-const SAFE_VEHICLE_TYPES = ['Van', 'Cab', 'Land Master', 'Car', 'Bike'];
 
 const VehicleForm = ({ vehicle, isOpen, onClose, onSuccess }) => {
   const isEditing = !!vehicle;
 
   const [formData, setFormData] = useState({
     vehicleNumber: '',
-    type: 'Van',
+    type: 'van', // ✅ Changed default to 'van' (lowercase, matches backend)
   });
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState({});
@@ -21,12 +19,12 @@ const VehicleForm = ({ vehicle, isOpen, onClose, onSuccess }) => {
     if (vehicle) {
       setFormData({
         vehicleNumber: vehicle.vehicleNumber || '',
-        type: vehicle.type || 'Van',
+        type: vehicle.type || 'van',
       });
     } else {
       setFormData({
         vehicleNumber: '',
-        type: 'Van',
+        type: 'van',
       });
     }
     setErrors({});
@@ -126,9 +124,11 @@ const VehicleForm = ({ vehicle, isOpen, onClose, onSuccess }) => {
               className={`input select pl-12 ${errors.type ? 'input-error' : ''}`}
               disabled={loading}
             >
-              {SAFE_VEHICLE_TYPES.map((type) => (
-                <option key={type} value={type}>
-                  {type}
+              <option value="">Select vehicle type</option>
+              {/* ✅ Fixed: Now using VEHICLE_TYPE_OPTIONS array */}
+              {VEHICLE_TYPE_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
                 </option>
               ))}
             </select>
