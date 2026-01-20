@@ -7,6 +7,9 @@ import {
   FiClock,
   FiList,
   FiBarChart2,
+  FiUsers,
+  FiTruck,
+  FiNavigation,
 } from 'react-icons/fi';
 
 import { useAuth } from '../../context/AuthContext';
@@ -22,6 +25,11 @@ import PMMapModal from '../../components/pm/PMMapModal';
 import PMHistoryList from '../../components/pm/PMHistoryList';
 import PMReports from '../../components/pm/PMReports';
 
+// ✅ NEW: Import Admin Tab Components
+import UserManagementTab from '../../components/admin/tabs/UserManagementTab';
+import VehicleManagementTab from '../../components/admin/tabs/VehicleManagementTab';
+import VehicleMileageTab from '../../components/admin/tabs/VehicleMileageTab';
+
 import RideRequestForm from '../../components/rides/RideRequestForm';
 import toast from 'react-hot-toast';
 
@@ -30,7 +38,8 @@ const PMDashboard = () => {
 
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [activeView, setActiveView] = useState('pending'); // pending | reports | history
+  // ✅ UPDATED: Add new views
+  const [activeView, setActiveView] = useState('pending'); // pending | reports | history | users | vehicles | mileage
 
   // Data
   const [stats, setStats] = useState({
@@ -142,14 +151,14 @@ const PMDashboard = () => {
 
   return (
     <div className="space-y-6">
-      {/* Header - FIXED BUTTONS */}
+      {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">
             Welcome back, {user?.name?.split(' ')[0]}
           </h1>
           <p className="text-gray-600">
-            Manage long-distance ride approvals
+            Manage approvals, users, and vehicles
           </p>
         </div>
 
@@ -160,9 +169,7 @@ const PMDashboard = () => {
             className="btn btn-outline"
           >
             <FiRefreshCw
-              className={`w-5 h-5 mr-2 ${
-                refreshing ? 'animate-spin' : ''
-              }`}
+              className={`w-5 h-5 mr-2 ${refreshing ? 'animate-spin' : ''}`}
             />
             Refresh
           </button>
@@ -180,75 +187,131 @@ const PMDashboard = () => {
       {/* Stats */}
       <PMStatsCards stats={stats} />
 
-      {/* View Toggle - IMPROVED */}
-      <div className="bg-white rounded-xl p-2 shadow-sm border border-gray-200 inline-flex gap-2 flex-wrap">
-        <button
-          onClick={() => setActiveView('pending')}
-          className={`
-            flex items-center gap-2 px-4 py-2.5 rounded-lg font-medium transition-all duration-200
-            ${
-              activeView === 'pending'
-                ? 'bg-amber-500 text-white shadow-md'
-                : 'text-gray-600 hover:bg-gray-100'
-            }
-          `}
-        >
-          <FiClock className="w-4 h-4" />
-          <span>Pending Approvals</span>
-          {pendingRides.length > 0 && (
-            <span
-              className={`
-                px-2 py-0.5 rounded-full text-xs font-bold
-                ${
-                  activeView === 'pending'
-                    ? 'bg-white/20 text-white'
-                    : 'bg-amber-500 text-white'
-                }
-              `}
-            >
-              {pendingRides.length}
-            </span>
-          )}
-        </button>
+      {/* ✅ UPDATED: View Toggle with 6 Tabs */}
+      <div className="bg-white rounded-xl p-2 shadow-sm border border-gray-200">
+        <div className="flex flex-wrap gap-2">
+          {/* Pending Approvals */}
+          <button
+            onClick={() => setActiveView('pending')}
+            className={`
+              flex items-center gap-2 px-4 py-2.5 rounded-lg font-medium transition-all duration-200
+              ${
+                activeView === 'pending'
+                  ? 'bg-amber-500 text-white shadow-md'
+                  : 'text-gray-600 hover:bg-gray-100'
+              }
+            `}
+          >
+            <FiClock className="w-4 h-4" />
+            <span className="hidden sm:inline">Pending Approvals</span>
+            <span className="sm:hidden">Approvals</span>
+            {pendingRides.length > 0 && (
+              <span
+                className={`
+                  px-2 py-0.5 rounded-full text-xs font-bold
+                  ${
+                    activeView === 'pending'
+                      ? 'bg-white/20 text-white'
+                      : 'bg-amber-500 text-white'
+                  }
+                `}
+              >
+                {pendingRides.length}
+              </span>
+            )}
+          </button>
 
-        <button
-          onClick={() => setActiveView('reports')}
-          className={`
-            flex items-center gap-2 px-4 py-2.5 rounded-lg font-medium transition-all duration-200
-            ${
-              activeView === 'reports'
-                ? 'bg-amber-500 text-white shadow-md'
-                : 'text-gray-600 hover:bg-gray-100'
-            }
-          `}
-        >
-          <FiBarChart2 className="w-4 h-4" />
-          <span>Reports</span>
-        </button>
+          {/* Reports */}
+          <button
+            onClick={() => setActiveView('reports')}
+            className={`
+              flex items-center gap-2 px-4 py-2.5 rounded-lg font-medium transition-all duration-200
+              ${
+                activeView === 'reports'
+                  ? 'bg-amber-500 text-white shadow-md'
+                  : 'text-gray-600 hover:bg-gray-100'
+              }
+            `}
+          >
+            <FiBarChart2 className="w-4 h-4" />
+            <span>Reports</span>
+          </button>
 
-        <button
-          onClick={() => setActiveView('history')}
-          className={`
-            flex items-center gap-2 px-4 py-2.5 rounded-lg font-medium transition-all duration-200
-            ${
-              activeView === 'history'
-                ? 'bg-amber-500 text-white shadow-md'
-                : 'text-gray-600 hover:bg-gray-100'
-            }
-          `}
-        >
-          <FiList className="w-4 h-4" />
-          <span>My History</span>
-        </button>
+          {/* History */}
+          <button
+            onClick={() => setActiveView('history')}
+            className={`
+              flex items-center gap-2 px-4 py-2.5 rounded-lg font-medium transition-all duration-200
+              ${
+                activeView === 'history'
+                  ? 'bg-amber-500 text-white shadow-md'
+                  : 'text-gray-600 hover:bg-gray-100'
+              }
+            `}
+          >
+            <FiList className="w-4 h-4" />
+            <span className="hidden sm:inline">My History</span>
+            <span className="sm:hidden">History</span>
+          </button>
+
+          {/* ✅ NEW: User Management */}
+          <button
+            onClick={() => setActiveView('users')}
+            className={`
+              flex items-center gap-2 px-4 py-2.5 rounded-lg font-medium transition-all duration-200
+              ${
+                activeView === 'users'
+                  ? 'bg-amber-500 text-white shadow-md'
+                  : 'text-gray-600 hover:bg-gray-100'
+              }
+            `}
+          >
+            <FiUsers className="w-4 h-4" />
+            <span>Users</span>
+          </button>
+
+          {/* ✅ NEW: Vehicle Management */}
+          <button
+            onClick={() => setActiveView('vehicles')}
+            className={`
+              flex items-center gap-2 px-4 py-2.5 rounded-lg font-medium transition-all duration-200
+              ${
+                activeView === 'vehicles'
+                  ? 'bg-amber-500 text-white shadow-md'
+                  : 'text-gray-600 hover:bg-gray-100'
+              }
+            `}
+          >
+            <FiTruck className="w-4 h-4" />
+            <span>Vehicles</span>
+          </button>
+
+          {/* ✅ NEW: Vehicle Mileage */}
+          <button
+            onClick={() => setActiveView('mileage')}
+            className={`
+              flex items-center gap-2 px-4 py-2.5 rounded-lg font-medium transition-all duration-200
+              ${
+                activeView === 'mileage'
+                  ? 'bg-amber-500 text-white shadow-md'
+                  : 'text-gray-600 hover:bg-gray-100'
+              }
+            `}
+          >
+            <FiNavigation className="w-4 h-4" />
+            <span>Mileage</span>
+          </button>
+        </div>
       </div>
 
-      {/* Content */}
+      {/* ✅ UPDATED: Content with New Views */}
       <motion.div
         key={activeView}
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.2 }}
       >
+        {/* Pending Approvals */}
         {activeView === 'pending' && (
           <>
             {pendingRides.length > 0 ? (
@@ -276,6 +339,7 @@ const PMDashboard = () => {
           </>
         )}
 
+        {/* Reports */}
         {activeView === 'reports' && (
           <div className="card">
             <h2 className="text-lg font-semibold text-gray-900 mb-4">
@@ -285,12 +349,34 @@ const PMDashboard = () => {
           </div>
         )}
 
+        {/* History */}
         {activeView === 'history' && (
           <div className="card">
             <h2 className="text-lg font-semibold text-gray-900 mb-4">
               Approval History
             </h2>
             <PMHistoryList />
+          </div>
+        )}
+
+        {/* ✅ NEW: User Management */}
+        {activeView === 'users' && (
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <UserManagementTab />
+          </div>
+        )}
+
+        {/* ✅ NEW: Vehicle Management */}
+        {activeView === 'vehicles' && (
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <VehicleManagementTab />
+          </div>
+        )}
+
+        {/* ✅ NEW: Vehicle Mileage */}
+        {activeView === 'mileage' && (
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <VehicleMileageTab />
           </div>
         )}
       </motion.div>
