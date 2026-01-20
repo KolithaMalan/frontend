@@ -20,7 +20,7 @@ import toast from 'react-hot-toast';
 const VehicleManagementTab = () => {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [vehicles, setVehicles] = useState([]);
+  const [vehicles, setVehicles] = useState([]); // ✅ ALWAYS initialize as array
   const [counts, setCounts] = useState({
     total: 0,
     available: 0,
@@ -43,70 +43,76 @@ const VehicleManagementTab = () => {
       setError(null);
 
       console.log('🔍 Fetching vehicles data...');
+      console.log('API Base URL:', import.meta.env.VITE_API_URL);
 
       const [vehiclesRes, countsRes] = await Promise.all([
         vehiclesAPI.getAll(),
         vehiclesAPI.getCounts(),
       ]);
 
-      console.log('📦 Vehicles API response:', vehiclesRes);
-      console.log('📦 Counts API response:', countsRes);
+      console.log('📦 Raw Vehicles Response:', vehiclesRes);
+      console.log('📦 Raw Counts Response:', countsRes);
 
-      // ✅ Extract vehicles array
+      // ✅ ULTRA-DEFENSIVE: Handle all possible response structures
       let vehiclesData = [];
-      if (vehiclesRes?.data?.vehicles && Array.isArray(vehiclesRes.data.vehicles)) {
-        vehiclesData = vehiclesRes.data.vehicles;
+      
+      if (vehiclesRes?.data?.vehicles) {
+        if (Array.isArray(vehiclesRes.data.vehicles)) {
+          vehiclesData = vehiclesRes.data.vehicles;
+          console.log('✅ Found vehicles at: vehiclesRes.data.vehicles');
+        } else {
+          console.error('❌ vehiclesRes.data.vehicles is not an array:', typeof vehiclesRes.data.vehicles);
+        }
       } else if (Array.isArray(vehiclesRes?.data)) {
         vehiclesData = vehiclesRes.data;
+        console.log('✅ Found vehicles at: vehiclesRes.data');
+      } else if (Array.isArray(vehiclesRes)) {
+        vehiclesData = vehiclesRes;
+        console.log('✅ Found vehicles at: vehiclesRes (root)');
       } else {
-        console.error('❌ Unexpected vehicles response structure:', vehiclesRes?.data);
-        throw new Error('Invalid vehicles data structure');
+        console.error('❌ Unexpected vehicles response structure:', vehiclesRes);
       }
 
-      // ✅ Extract counts object
-      let countsData = {
-        total: 0,
-        available: 0,
-        busy: 0,
-        maintenance: 0,
-      };
+      // ✅ Validate each vehicle is an object
+      vehiclesData = vehiclesData.filter((v, index) => {
+        if (!v || typeof v !== 'object') {
+          console.warn(`⚠️ Invalid vehicle at index ${index}:`, v);
+          return false;
+        }
+        return true;
+      });
 
+      console.log(`✅ Parsed ${vehiclesData.length} valid vehicles`);
+
+      // ✅ Handle counts
+      let countsData = { total: 0, available: 0, busy: 0, maintenance: 0 };
+      
       if (countsRes?.data?.counts) {
         countsData = countsRes.data.counts;
-      } else if (countsRes?.data) {
-        countsData = {
-          total: countsRes.data.total || 0,
-          available: countsRes.data.available || 0,
-          busy: countsRes.data.busy || 0,
-          maintenance: countsRes.data.maintenance || 0,
-        };
+      } else if (countsRes?.data?.total !== undefined) {
+        countsData = countsRes.data;
       }
 
-      console.log(`✅ Successfully loaded ${vehiclesData.length} vehicles`);
-
-      setVehicles(vehiclesData);
-      setCounts(countsData);
+      // ✅ CRITICAL: Ensure state is ALWAYS set with valid arrays
+      setVehicles(Array.isArray(vehiclesData) ? vehiclesData : []);
+      setCounts({
+        total: Number(countsData.total) || 0,
+        available: Number(countsData.available) || 0,
+        busy: Number(countsData.busy) || 0,
+        maintenance: Number(countsData.maintenance) || 0,
+      });
 
     } catch (error) {
-      console.error('❌ Failed to fetch vehicles:', error);
-      console.error('Error details:', {
-        message: error.message,
-        response: error.response?.data,
-        status: error.response?.status,
-      });
+      console.error('❌ Fetch error:', error);
+      console.error('Error response:', error.response);
       
       const errorMessage = error.response?.data?.message || error.message || 'Failed to load vehicles';
       setError(errorMessage);
       toast.error(errorMessage);
       
-      // Set safe defaults
+      // ✅ CRITICAL: Set safe defaults on error
       setVehicles([]);
-      setCounts({
-        total: 0,
-        available: 0,
-        busy: 0,
-        maintenance: 0,
-      });
+      setCounts({ total: 0, available: 0, busy: 0, maintenance: 0 });
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -114,7 +120,14 @@ const VehicleManagementTab = () => {
   }, []);
 
   useEffect(() => {
-    fetchData();
+    // ✅ Catch errors in useEffect
+    try {
+      fetchData();
+    } catch (err) {
+      console.error('❌ Error in useEffect:', err);
+      setError(err.message);
+      setLoading(false);
+    }
   }, [fetchData]);
 
   const handleRefresh = () => {
@@ -152,8 +165,7 @@ const VehicleManagementTab = () => {
       setSelectedVehicle(null);
       fetchData(false);
     } catch (error) {
-      const message = error.response?.data?.message || 'Failed to delete vehicle';
-      toast.error(message);
+      toast.error(error.response?.data?.message || 'Failed to delete vehicle');
     } finally {
       setActionLoading(false);
     }
@@ -170,8 +182,7 @@ const VehicleManagementTab = () => {
       setSelectedVehicle(null);
       fetchData(false);
     } catch (error) {
-      const message = error.response?.data?.message || 'Failed to set maintenance';
-      toast.error(message);
+      toast.error(error.response?.data?.message || 'Failed to set maintenance');
     } finally {
       setActionLoading(false);
     }
@@ -194,12 +205,13 @@ const VehicleManagementTab = () => {
     }
   };
 
+  // ✅ Show loading state
   if (loading) {
     return <Loader text="Loading vehicles..." />;
   }
 
-  // ✅ Show error state if API failed
-  if (error && vehicles.length === 0) {
+  // ✅ Show error state
+  if (error && (!Array.isArray(vehicles) || vehicles.length === 0)) {
     return (
       <div className="card">
         <div className="flex flex-col items-center justify-center py-16">
@@ -208,14 +220,22 @@ const VehicleManagementTab = () => {
           </div>
           <h3 className="text-lg font-semibold text-gray-900 mb-2">Failed to Load Vehicles</h3>
           <p className="text-gray-500 text-center max-w-md mb-4">{error}</p>
-          <button onClick={() => fetchData()} className="btn btn-primary">
-            <FiRefreshCw className="w-5 h-5 mr-2" />
-            Try Again
-          </button>
+          <div className="flex gap-3">
+            <button onClick={() => window.location.reload()} className="btn btn-outline">
+              Reload Page
+            </button>
+            <button onClick={() => fetchData()} className="btn btn-primary">
+              <FiRefreshCw className="w-5 h-5 mr-2" />
+              Try Again
+            </button>
+          </div>
         </div>
       </div>
     );
   }
+
+  // ✅ CRITICAL: Create safe array reference
+  const safeVehicles = Array.isArray(vehicles) ? vehicles : [];
 
   return (
     <div className="space-y-6">
@@ -223,26 +243,26 @@ const VehicleManagementTab = () => {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <div className="card bg-gray-50">
           <p className="text-sm text-gray-500">Total Vehicles</p>
-          <p className="text-2xl font-bold text-gray-900">{counts.total}</p>
+          <p className="text-2xl font-bold text-gray-900">{counts.total || 0}</p>
         </div>
         <div className="card bg-green-50">
           <p className="text-sm text-green-600">Available</p>
-          <p className="text-2xl font-bold text-green-700">{counts.available}</p>
+          <p className="text-2xl font-bold text-green-700">{counts.available || 0}</p>
         </div>
         <div className="card bg-yellow-50">
           <p className="text-sm text-yellow-600">Busy</p>
-          <p className="text-2xl font-bold text-yellow-700">{counts.busy}</p>
+          <p className="text-2xl font-bold text-yellow-700">{counts.busy || 0}</p>
         </div>
         <div className="card bg-red-50">
           <p className="text-sm text-red-600">Maintenance</p>
-          <p className="text-2xl font-bold text-red-700">{counts.maintenance}</p>
+          <p className="text-2xl font-bold text-red-700">{counts.maintenance || 0}</p>
         </div>
       </div>
 
       {/* Actions */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <h3 className="text-lg font-semibold text-gray-900">
-          Vehicle List ({vehicles.length})
+          Vehicle List ({safeVehicles.length})
         </h3>
         <div className="flex gap-3">
           <button
@@ -253,10 +273,7 @@ const VehicleManagementTab = () => {
             <FiRefreshCw className={`w-5 h-5 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
             Refresh
           </button>
-          <button
-            onClick={handleCreateVehicle}
-            className="btn btn-primary"
-          >
+          <button onClick={handleCreateVehicle} className="btn btn-primary">
             <FiPlus className="w-5 h-5 mr-2" />
             Add Vehicle
           </button>
@@ -264,82 +281,94 @@ const VehicleManagementTab = () => {
       </div>
 
       {/* Vehicles Grid */}
-      {vehicles.length > 0 ? (
+      {safeVehicles.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {vehicles.map((vehicle) => (
-            <motion.div
-              key={vehicle._id}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="card"
-            >
-              <div className="flex items-start justify-between mb-4">
-                <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
-                    <FiTruck className="w-6 h-6 text-blue-600" />
+          {safeVehicles.map((vehicle, index) => {
+            // ✅ Extra safety check
+            if (!vehicle || typeof vehicle !== 'object') {
+              console.warn(`Skipping invalid vehicle at index ${index}`);
+              return null;
+            }
+
+            return (
+              <motion.div
+                key={vehicle._id || `vehicle-${index}`}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="card"
+              >
+                <div className="flex items-start justify-between mb-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
+                      <FiTruck className="w-6 h-6 text-blue-600" />
+                    </div>
+                    <div>
+                      <h4 className="font-bold text-gray-900 text-lg">
+                        {vehicle.vehicleNumber || 'Unknown'}
+                      </h4>
+                      <p className="text-sm text-gray-500">{vehicle.type || 'N/A'}</p>
+                    </div>
+                  </div>
+                  <span className={`px-3 py-1 text-xs font-medium rounded-full ${getStatusColor(vehicle.status)}`}>
+                    {vehicle.status || 'unknown'}
+                  </span>
+                </div>
+
+                {/* Stats */}
+                <div className="grid grid-cols-2 gap-4 py-4 border-t border-b border-gray-100">
+                  <div>
+                    <p className="text-xs text-gray-500">Total Mileage</p>
+                    <p className="font-semibold text-gray-900">
+                      {formatDistance(vehicle.totalMileage || 0)}
+                    </p>
                   </div>
                   <div>
-                    <h4 className="font-bold text-gray-900 text-lg">
-                      {vehicle.vehicleNumber}
-                    </h4>
-                    <p className="text-sm text-gray-500">{vehicle.type}</p>
+                    <p className="text-xs text-gray-500">Monthly Mileage</p>
+                    <p className="font-semibold text-gray-900">
+                      {formatDistance(vehicle.monthlyMileage || 0)}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-500">Total Rides</p>
+                    <p className="font-semibold text-gray-900">{vehicle.totalRides || 0}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-500">Current Driver</p>
+                    <p className="font-semibold text-gray-900">
+                      {vehicle.currentDriver?.name || '-'}
+                    </p>
                   </div>
                 </div>
-                <span className={`px-3 py-1 text-xs font-medium rounded-full ${getStatusColor(vehicle.status)}`}>
-                  {vehicle.status}
-                </span>
-              </div>
 
-              {/* Stats */}
-              <div className="grid grid-cols-2 gap-4 py-4 border-t border-b border-gray-100">
-                <div>
-                  <p className="text-xs text-gray-500">Total Mileage</p>
-                  <p className="font-semibold text-gray-900">{formatDistance(vehicle.totalMileage || 0)}</p>
-                </div>
-                <div>
-                  <p className="text-xs text-gray-500">Monthly Mileage</p>
-                  <p className="font-semibold text-gray-900">{formatDistance(vehicle.monthlyMileage || 0)}</p>
-                </div>
-                <div>
-                  <p className="text-xs text-gray-500">Total Rides</p>
-                  <p className="font-semibold text-gray-900">{vehicle.totalRides || 0}</p>
-                </div>
-                <div>
-                  <p className="text-xs text-gray-500">Current Driver</p>
-                  <p className="font-semibold text-gray-900">
-                    {vehicle.currentDriver?.name || '-'}
-                  </p>
-                </div>
-              </div>
-
-              {/* Actions */}
-              <div className="flex gap-2 pt-4">
-                <button
-                  onClick={() => handleEditVehicle(vehicle)}
-                  className="btn btn-outline btn-sm flex-1"
-                >
-                  <FiEdit2 className="w-4 h-4 mr-1" />
-                  Edit
-                </button>
-                {vehicle.status !== 'maintenance' && (
+                {/* Actions */}
+                <div className="flex gap-2 pt-4">
                   <button
-                    onClick={() => handleSetMaintenance(vehicle)}
-                    className="btn btn-sm text-amber-600 hover:bg-amber-50 border border-amber-200"
-                    title="Set to Maintenance"
+                    onClick={() => handleEditVehicle(vehicle)}
+                    className="btn btn-outline btn-sm flex-1"
                   >
-                    <FiTool className="w-4 h-4" />
+                    <FiEdit2 className="w-4 h-4 mr-1" />
+                    Edit
                   </button>
-                )}
-                <button
-                  onClick={() => handleDeleteVehicle(vehicle)}
-                  className="btn btn-sm text-red-600 hover:bg-red-50 border border-red-200"
-                  title="Delete"
-                >
-                  <FiTrash2 className="w-4 h-4" />
-                </button>
-              </div>
-            </motion.div>
-          ))}
+                  {vehicle.status !== 'maintenance' && (
+                    <button
+                      onClick={() => handleSetMaintenance(vehicle)}
+                      className="btn btn-sm text-amber-600 hover:bg-amber-50 border border-amber-200"
+                      title="Set to Maintenance"
+                    >
+                      <FiTool className="w-4 h-4" />
+                    </button>
+                  )}
+                  <button
+                    onClick={() => handleDeleteVehicle(vehicle)}
+                    className="btn btn-sm text-red-600 hover:bg-red-50 border border-red-200"
+                    title="Delete"
+                  >
+                    <FiTrash2 className="w-4 h-4" />
+                  </button>
+                </div>
+              </motion.div>
+            );
+          })}
         </div>
       ) : (
         <div className="card">
@@ -353,48 +382,52 @@ const VehicleManagementTab = () => {
         </div>
       )}
 
-      {/* Vehicle Form Modal */}
-      <VehicleForm
-        vehicle={selectedVehicle}
-        isOpen={showVehicleForm}
-        onClose={() => {
-          setShowVehicleForm(false);
-          setSelectedVehicle(null);
-        }}
-        onSuccess={handleFormSuccess}
-      />
+      {/* Modals */}
+      {showVehicleForm && (
+        <VehicleForm
+          vehicle={selectedVehicle}
+          isOpen={showVehicleForm}
+          onClose={() => {
+            setShowVehicleForm(false);
+            setSelectedVehicle(null);
+          }}
+          onSuccess={handleFormSuccess}
+        />
+      )}
 
-      {/* Delete Confirmation */}
-      <ConfirmDialog
-        isOpen={showDeleteDialog}
-        onClose={() => {
-          setShowDeleteDialog(false);
-          setSelectedVehicle(null);
-        }}
-        onConfirm={confirmDelete}
-        title="Delete Vehicle"
-        message={`Are you sure you want to delete vehicle ${selectedVehicle?.vehicleNumber}? This action cannot be undone.`}
-        confirmText="Delete"
-        cancelText="Cancel"
-        type="danger"
-        loading={actionLoading}
-      />
+      {showDeleteDialog && (
+        <ConfirmDialog
+          isOpen={showDeleteDialog}
+          onClose={() => {
+            setShowDeleteDialog(false);
+            setSelectedVehicle(null);
+          }}
+          onConfirm={confirmDelete}
+          title="Delete Vehicle"
+          message={`Are you sure you want to delete vehicle ${selectedVehicle?.vehicleNumber}? This action cannot be undone.`}
+          confirmText="Delete"
+          cancelText="Cancel"
+          type="danger"
+          loading={actionLoading}
+        />
+      )}
 
-      {/* Maintenance Confirmation */}
-      <ConfirmDialog
-        isOpen={showMaintenanceDialog}
-        onClose={() => {
-          setShowMaintenanceDialog(false);
-          setSelectedVehicle(null);
-        }}
-        onConfirm={confirmMaintenance}
-        title="Set to Maintenance"
-        message={`Are you sure you want to set vehicle ${selectedVehicle?.vehicleNumber} to maintenance mode? It will not be available for assignment.`}
-        confirmText="Set Maintenance"
-        cancelText="Cancel"
-        type="warning"
-        loading={actionLoading}
-      />
+      {showMaintenanceDialog && (
+        <ConfirmDialog
+          isOpen={showMaintenanceDialog}
+          onClose={() => {
+            setShowMaintenanceDialog(false);
+            setSelectedVehicle(null);
+          }}
+          onConfirm={confirmMaintenance}
+          title="Set to Maintenance"
+          message={`Are you sure you want to set vehicle ${selectedVehicle?.vehicleNumber} to maintenance mode?`}
+          confirmText="Set Maintenance"
+          cancelText="Cancel"
+          type="warning"
+          loading={actionLoading}
+        />
+      )}
     </div>
   );
 };
