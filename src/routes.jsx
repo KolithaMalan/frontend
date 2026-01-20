@@ -31,6 +31,9 @@ import Settings from './pages/shared/Settings';
 import Profile from './pages/shared/Profile';
 import Alerts from './pages/shared/Alerts';
 
+// ✅ NEW: Error Boundary
+import ErrorFallback from './components/common/ErrorBoundary';
+
 // Role constants
 import { ROLES } from './utils/constants';
 
@@ -52,84 +55,161 @@ const DashboardRedirect = () => {
 };
 
 const router = createBrowserRouter([
-  // Public routes
+  // ✅ Public routes with error boundary
   {
     path: '/',
     element: <Home />,
+    errorElement: <ErrorFallback />,
   },
 
-  // Auth routes
+  // ✅ Auth routes with error boundary
   {
     element: <AuthLayout />,
+    errorElement: <ErrorFallback />,
     children: [
-      { path: 'login', element: <Login /> },
-      { path: 'register', element: <Register /> },
+      { 
+        path: 'login', 
+        element: <Login />,
+        errorElement: <ErrorFallback />,
+      },
+      { 
+        path: 'register', 
+        element: <Register />,
+        errorElement: <ErrorFallback />,
+      },
     ],
   },
 
-  // Dashboard redirect
+  // ✅ Dashboard redirect with error boundary
   {
     path: '/dashboard',
     element: <DashboardRedirect />,
+    errorElement: <ErrorFallback />,
   },
 
-  // User Dashboard
+  // ✅ User Dashboard with error boundary
   {
     path: '/user',
     element: <DashboardLayout allowedRoles={[ROLES.USER]} />,
+    errorElement: <ErrorFallback />,
     children: [
-      { index: true, element: <UserDashboard /> },
-      { path: 'alerts', element: <Alerts /> },
+      { 
+        index: true, 
+        element: <UserDashboard />,
+        errorElement: <ErrorFallback />,
+      },
+      { 
+        path: 'alerts', 
+        element: <Alerts />,
+        errorElement: <ErrorFallback />,
+      },
     ],
   },
 
-  // Driver Dashboard
+  // ✅ Driver Dashboard with error boundary
   {
     path: '/driver',
     element: <DashboardLayout allowedRoles={[ROLES.DRIVER]} />,
+    errorElement: <ErrorFallback />,
     children: [
-      { index: true, element: <DriverDashboard /> },
-      { path: 'daily', element: <DailyRides /> },
-      { path: 'alerts', element: <Alerts /> },
+      { 
+        index: true, 
+        element: <DriverDashboard />,
+        errorElement: <ErrorFallback />,
+      },
+      { 
+        path: 'daily', 
+        element: <DailyRides />,
+        errorElement: <ErrorFallback />,
+      },
+      { 
+        path: 'alerts', 
+        element: <Alerts />,
+        errorElement: <ErrorFallback />,
+      },
     ],
   },
 
-  // Admin Dashboard
+  // ✅ Admin Dashboard with error boundary
   {
     path: '/admin',
     element: <DashboardLayout allowedRoles={[ROLES.ADMIN]} />,
+    errorElement: <ErrorFallback />,
     children: [
-      { index: true, element: <AdminDashboard /> },
-      { path: 'map', element: <MapView /> },
-      { path: 'alerts', element: <Alerts /> },
+      { 
+        index: true, 
+        element: <AdminDashboard />,
+        errorElement: <ErrorFallback />,
+      },
+      { 
+        path: 'map', 
+        element: <MapView />,
+        errorElement: <ErrorFallback />,
+      },
+      { 
+        path: 'alerts', 
+        element: <Alerts />,
+        errorElement: <ErrorFallback />,
+      },
     ],
   },
 
-  // PM Dashboard
+  // ✅ PM Dashboard with error boundary
   {
     path: '/pm',
     element: <DashboardLayout allowedRoles={[ROLES.PROJECT_MANAGER]} />,
+    errorElement: <ErrorFallback />,
     children: [
-      { index: true, element: <PMDashboard /> },
-      { path: 'map', element: <PMMapView /> },
-      { path: 'alerts', element: <Alerts /> },
+      { 
+        index: true, 
+        element: <PMDashboard />,
+        errorElement: <ErrorFallback />,
+      },
+      { 
+        path: 'map', 
+        element: <PMMapView />,
+        errorElement: <ErrorFallback />,
+      },
+      { 
+        path: 'alerts', 
+        element: <Alerts />,
+        errorElement: <ErrorFallback />,
+      },
     ],
   },
 
-  // Shared routes (all authenticated users)
+  // ✅ Shared routes with error boundary
   {
     element: <DashboardLayout />,
+    errorElement: <ErrorFallback />,
     children: [
-      { path: 'settings', element: <Settings /> },
-      { path: 'profile', element: <Profile /> },
-      { path: 'map-view', element: <MapView /> },
-      { path: 'alerts', element: <Alerts /> },
+      { 
+        path: 'settings', 
+        element: <Settings />,
+        errorElement: <ErrorFallback />,
+      },
+      { 
+        path: 'profile', 
+        element: <Profile />,
+        errorElement: <ErrorFallback />,
+      },
+      { 
+        path: 'map-view', 
+        element: <MapView />,
+        errorElement: <ErrorFallback />,
+      },
+      { 
+        path: 'alerts', 
+        element: <Alerts />,
+        errorElement: <ErrorFallback />,
+      },
     ],
   },
 
-  // Unauthorized
+  // ✅ Unauthorized with error boundary
   {
     path: '/unauthorized',
+    errorElement: <ErrorFallback />,
     element: (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center">
@@ -141,10 +221,11 @@ const router = createBrowserRouter([
     ),
   },
 
-  // 404
+  // ✅ 404 with error boundary
   {
     path: '*',
     element: <NotFound />,
+    errorElement: <ErrorFallback />,
   },
 ]);
 
