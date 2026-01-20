@@ -1,19 +1,18 @@
 import React, { useState, useEffect } from 'react';
-import {
-  FiTruck,
-  FiHash,
-} from 'react-icons/fi';
+import { FiTruck, FiHash } from 'react-icons/fi';
 import Modal from '../common/Modal';
 import { vehiclesAPI } from '../../services/api';
-import { VEHICLE_TYPES } from '../../utils/constants';
 import toast from 'react-hot-toast';
+
+// ✅ HARDCODED: Safe fallback vehicle types
+const SAFE_VEHICLE_TYPES = ['Van', 'Cab', 'Land Master', 'Car', 'Bike'];
 
 const VehicleFormModal = ({ isOpen, onClose, vehicle = null, onSuccess }) => {
   const isEditing = !!vehicle;
 
   const [formData, setFormData] = useState({
     vehicleNumber: '',
-    type: 'Car',
+    type: 'Van',
   });
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState({});
@@ -22,12 +21,12 @@ const VehicleFormModal = ({ isOpen, onClose, vehicle = null, onSuccess }) => {
     if (vehicle) {
       setFormData({
         vehicleNumber: vehicle.vehicleNumber || '',
-        type: vehicle.type || 'Car',
+        type: vehicle.type || 'Van',
       });
     } else {
       setFormData({
         vehicleNumber: '',
-        type: 'Car',
+        type: 'Van',
       });
     }
     setErrors({});
@@ -92,9 +91,11 @@ const VehicleFormModal = ({ isOpen, onClose, vehicle = null, onSuccess }) => {
       <form onSubmit={handleSubmit} className="p-6 space-y-5">
         {/* Vehicle Number */}
         <div>
-          <label className="label">Vehicle Number</label>
+          <label className="label">
+            Vehicle Number <span className="text-red-500">*</span>
+          </label>
           <div className="relative">
-            <FiHash className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
+            <FiHash className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5 pointer-events-none" />
             <input
               type="text"
               name="vehicleNumber"
@@ -102,6 +103,7 @@ const VehicleFormModal = ({ isOpen, onClose, vehicle = null, onSuccess }) => {
               onChange={handleChange}
               className={`input pl-12 uppercase ${errors.vehicleNumber ? 'input-error' : ''}`}
               placeholder="e.g., NB-1985"
+              disabled={loading}
             />
           </div>
           {errors.vehicleNumber && (
@@ -111,16 +113,19 @@ const VehicleFormModal = ({ isOpen, onClose, vehicle = null, onSuccess }) => {
 
         {/* Vehicle Type */}
         <div>
-          <label className="label">Vehicle Type</label>
+          <label className="label">
+            Vehicle Type <span className="text-red-500">*</span>
+          </label>
           <div className="relative">
-            <FiTruck className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
+            <FiTruck className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5 pointer-events-none" />
             <select
               name="type"
               value={formData.type}
               onChange={handleChange}
-              className={`select pl-12 ${errors.type ? 'input-error' : ''}`}
+              className={`input select pl-12 ${errors.type ? 'input-error' : ''}`}
+              disabled={loading}
             >
-              {VEHICLE_TYPES.map((type) => (
+              {SAFE_VEHICLE_TYPES.map((type) => (
                 <option key={type} value={type}>
                   {type}
                 </option>
@@ -131,18 +136,19 @@ const VehicleFormModal = ({ isOpen, onClose, vehicle = null, onSuccess }) => {
         </div>
 
         {/* Actions */}
-        <div className="flex gap-3 pt-4">
+        <div className="flex gap-3 pt-4 border-t border-gray-200">
           <button
             type="button"
             onClick={onClose}
             className="btn btn-outline flex-1"
+            disabled={loading}
           >
             Cancel
           </button>
           <button
             type="submit"
             disabled={loading}
-            className="btn-primary flex-1"
+            className="btn btn-primary flex-1"
           >
             {loading ? (
               <span className="flex items-center justify-center gap-2">
