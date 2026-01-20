@@ -7,6 +7,7 @@ import {
   FiTruck,
   FiRefreshCw,
   FiTool,
+  FiAlertCircle,
 } from 'react-icons/fi';
 import { vehiclesAPI } from '../../../services/api';
 import Loader from '../../common/Loader';
@@ -26,6 +27,7 @@ const VehicleManagementTab = () => {
     busy: 0,
     maintenance: 0,
   });
+  const [error, setError] = useState(null);
 
   // Modal states
   const [selectedVehicle, setSelectedVehicle] = useState(null);
@@ -38,39 +40,66 @@ const VehicleManagementTab = () => {
     try {
       if (showLoader) setLoading(true);
       else setRefreshing(true);
+      setError(null);
+
+      console.log('🔍 Fetching vehicles data...');
 
       const [vehiclesRes, countsRes] = await Promise.all([
         vehiclesAPI.getAll(),
         vehiclesAPI.getCounts(),
       ]);
 
-      // ✅ FIX: Add safety checks for API response
-      const vehiclesData = vehiclesRes?.data?.vehicles;
-      const countsData = countsRes?.data?.counts;
+      console.log('📦 Vehicles API response:', vehiclesRes);
+      console.log('📦 Counts API response:', countsRes);
 
-      // Ensure vehicles is always an array
-      if (Array.isArray(vehiclesData)) {
-        setVehicles(vehiclesData);
+      // ✅ Extract vehicles array
+      let vehiclesData = [];
+      if (vehiclesRes?.data?.vehicles && Array.isArray(vehiclesRes.data.vehicles)) {
+        vehiclesData = vehiclesRes.data.vehicles;
       } else if (Array.isArray(vehiclesRes?.data)) {
-        // Maybe API returns array directly
-        setVehicles(vehiclesRes.data);
+        vehiclesData = vehiclesRes.data;
       } else {
-        console.warn('Unexpected vehicles response format:', vehiclesRes?.data);
-        setVehicles([]);
+        console.error('❌ Unexpected vehicles response structure:', vehiclesRes?.data);
+        throw new Error('Invalid vehicles data structure');
       }
 
-      // Ensure counts has default values
-      setCounts({
-        total: countsData?.total || 0,
-        available: countsData?.available || 0,
-        busy: countsData?.busy || 0,
-        maintenance: countsData?.maintenance || 0,
-      });
+      // ✅ Extract counts object
+      let countsData = {
+        total: 0,
+        available: 0,
+        busy: 0,
+        maintenance: 0,
+      };
+
+      if (countsRes?.data?.counts) {
+        countsData = countsRes.data.counts;
+      } else if (countsRes?.data) {
+        countsData = {
+          total: countsRes.data.total || 0,
+          available: countsRes.data.available || 0,
+          busy: countsRes.data.busy || 0,
+          maintenance: countsRes.data.maintenance || 0,
+        };
+      }
+
+      console.log(`✅ Successfully loaded ${vehiclesData.length} vehicles`);
+
+      setVehicles(vehiclesData);
+      setCounts(countsData);
 
     } catch (error) {
-      console.error('Failed to fetch vehicles:', error);
-      toast.error('Failed to load vehicles');
-      // ✅ Set empty arrays on error
+      console.error('❌ Failed to fetch vehicles:', error);
+      console.error('Error details:', {
+        message: error.message,
+        response: error.response?.data,
+        status: error.response?.status,
+      });
+      
+      const errorMessage = error.response?.data?.message || error.message || 'Failed to load vehicles';
+      setError(errorMessage);
+      toast.error(errorMessage);
+      
+      // Set safe defaults
       setVehicles([]);
       setCounts({
         total: 0,
@@ -169,6 +198,25 @@ const VehicleManagementTab = () => {
     return <Loader text="Loading vehicles..." />;
   }
 
+  // ✅ Show error state if API failed
+  if (error && vehicles.length === 0) {
+    return (
+      <div className="card">
+        <div className="flex flex-col items-center justify-center py-16">
+          <div className="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mb-4">
+            <FiAlertCircle className="w-10 h-10 text-red-600" />
+          </div>
+          <h3 className="text-lg font-semibold text-gray-900 mb-2">Failed to Load Vehicles</h3>
+          <p className="text-gray-500 text-center max-w-md mb-4">{error}</p>
+          <button onClick={() => fetchData()} className="btn btn-primary">
+            <FiRefreshCw className="w-5 h-5 mr-2" />
+            Try Again
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       {/* Stats */}
@@ -194,7 +242,7 @@ const VehicleManagementTab = () => {
       {/* Actions */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <h3 className="text-lg font-semibold text-gray-900">
-          Vehicle List ({counts.total})
+          Vehicle List ({vehicles.length})
         </h3>
         <div className="flex gap-3">
           <button
@@ -215,8 +263,8 @@ const VehicleManagementTab = () => {
         </div>
       </div>
 
-      {/* Vehicles Grid - ✅ Added safety check */}
-      {Array.isArray(vehicles) && vehicles.length > 0 ? (
+      {/* Vehicles Grid */}
+      {vehicles.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {vehicles.map((vehicle) => (
             <motion.div
