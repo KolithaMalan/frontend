@@ -1,33 +1,13 @@
 import React from 'react';
 import { FiAlertCircle, FiRefreshCw, FiHome } from 'react-icons/fi';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useRouteError } from 'react-router-dom';
 
-class ErrorBoundary extends React.Component {
-  constructor(props) {
-    super(props);
-    this.state = { hasError: false, error: null, errorInfo: null };
-  }
-
-  static getDerivedStateFromError(error) {
-    return { hasError: true };
-  }
-
-  componentDidCatch(error, errorInfo) {
-    console.error('❌ Error caught by boundary:', error, errorInfo);
-    this.setState({ error, errorInfo });
-  }
-
-  render() {
-    if (this.state.hasError) {
-      return <ErrorFallback error={this.state.error} />;
-    }
-
-    return this.props.children;
-  }
-}
-
-const ErrorFallback = ({ error }) => {
+// Error Fallback Component
+const ErrorFallback = () => {
   const navigate = useNavigate();
+  const error = useRouteError();
+
+  console.error('❌ Route Error:', error);
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
@@ -41,14 +21,16 @@ const ErrorFallback = ({ error }) => {
         </h1>
         
         <p className="text-gray-600 mb-6">
-          {error?.message || 'An unexpected error occurred'}
+          {error?.message || error?.statusText || 'An unexpected error occurred'}
         </p>
 
-        <div className="bg-gray-50 rounded-lg p-4 mb-6 text-left">
-          <p className="text-xs font-mono text-gray-700">
-            {error?.stack?.split('\n')[0] || 'No error details available'}
-          </p>
-        </div>
+        {error?.stack && (
+          <div className="bg-gray-50 rounded-lg p-4 mb-6 text-left max-h-40 overflow-auto">
+            <p className="text-xs font-mono text-gray-700 whitespace-pre-wrap">
+              {error.stack.split('\n').slice(0, 5).join('\n')}
+            </p>
+          </div>
+        )}
 
         <div className="flex gap-3">
           <button
@@ -63,12 +45,16 @@ const ErrorFallback = ({ error }) => {
             className="btn btn-outline flex-1"
           >
             <FiHome className="w-5 h-5 mr-2" />
-            Go Home
+            Dashboard
           </button>
         </div>
+
+        <p className="text-xs text-gray-400 mt-4">
+          Error ID: {new Date().getTime()}
+        </p>
       </div>
     </div>
   );
 };
 
-export default ErrorBoundary;
+export default ErrorFallback;
