@@ -7,12 +7,10 @@ import {
   FiTruck,
   FiRefreshCw,
   FiTool,
-  FiActivity,
 } from 'react-icons/fi';
 import { vehiclesAPI } from '../../../services/api';
 import Loader from '../../common/Loader';
 import EmptyState from '../../common/EmptyState';
-import StatusBadge from '../../common/StatusBadge';
 import VehicleForm from '../VehicleForm';
 import ConfirmDialog from '../../common/ConfirmDialog';
 import { formatDistance } from '../../../utils/formatters';
@@ -46,11 +44,40 @@ const VehicleManagementTab = () => {
         vehiclesAPI.getCounts(),
       ]);
 
-      setVehicles(vehiclesRes.data.vehicles);
-      setCounts(countsRes.data.counts);
+      // ✅ FIX: Add safety checks for API response
+      const vehiclesData = vehiclesRes?.data?.vehicles;
+      const countsData = countsRes?.data?.counts;
+
+      // Ensure vehicles is always an array
+      if (Array.isArray(vehiclesData)) {
+        setVehicles(vehiclesData);
+      } else if (Array.isArray(vehiclesRes?.data)) {
+        // Maybe API returns array directly
+        setVehicles(vehiclesRes.data);
+      } else {
+        console.warn('Unexpected vehicles response format:', vehiclesRes?.data);
+        setVehicles([]);
+      }
+
+      // Ensure counts has default values
+      setCounts({
+        total: countsData?.total || 0,
+        available: countsData?.available || 0,
+        busy: countsData?.busy || 0,
+        maintenance: countsData?.maintenance || 0,
+      });
+
     } catch (error) {
       console.error('Failed to fetch vehicles:', error);
       toast.error('Failed to load vehicles');
+      // ✅ Set empty arrays on error
+      setVehicles([]);
+      setCounts({
+        total: 0,
+        available: 0,
+        busy: 0,
+        maintenance: 0,
+      });
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -164,7 +191,7 @@ const VehicleManagementTab = () => {
         </div>
       </div>
 
-      {/* Actions - BEAUTIFUL */}
+      {/* Actions */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <h3 className="text-lg font-semibold text-gray-900">
           Vehicle List ({counts.total})
@@ -188,8 +215,8 @@ const VehicleManagementTab = () => {
         </div>
       </div>
 
-      {/* Vehicles Grid */}
-      {vehicles.length > 0 ? (
+      {/* Vehicles Grid - ✅ Added safety check */}
+      {Array.isArray(vehicles) && vehicles.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {vehicles.map((vehicle) => (
             <motion.div
@@ -219,15 +246,15 @@ const VehicleManagementTab = () => {
               <div className="grid grid-cols-2 gap-4 py-4 border-t border-b border-gray-100">
                 <div>
                   <p className="text-xs text-gray-500">Total Mileage</p>
-                  <p className="font-semibold text-gray-900">{formatDistance(vehicle.totalMileage)}</p>
+                  <p className="font-semibold text-gray-900">{formatDistance(vehicle.totalMileage || 0)}</p>
                 </div>
                 <div>
                   <p className="text-xs text-gray-500">Monthly Mileage</p>
-                  <p className="font-semibold text-gray-900">{formatDistance(vehicle.monthlyMileage)}</p>
+                  <p className="font-semibold text-gray-900">{formatDistance(vehicle.monthlyMileage || 0)}</p>
                 </div>
                 <div>
                   <p className="text-xs text-gray-500">Total Rides</p>
-                  <p className="font-semibold text-gray-900">{vehicle.totalRides}</p>
+                  <p className="font-semibold text-gray-900">{vehicle.totalRides || 0}</p>
                 </div>
                 <div>
                   <p className="text-xs text-gray-500">Current Driver</p>
