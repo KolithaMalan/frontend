@@ -305,7 +305,7 @@ const RideCard = ({ ride }) => {
 const getStatusMessage = (ride) => {
   const messages = {
     pending: 'Your ride request is being processed.',
-    awaiting_pm: 'Awaiting Project Manager approval (Long distance ride).',
+    awaiting_pm: 'Awaiting Plant Manager approval (Long distance ride).',
     awaiting_admin: 'Awaiting Admin approval.',
     pm_approved: 'Approved by PM. Waiting for driver assignment.',
     approved: 'Approved. Waiting for driver assignment.',

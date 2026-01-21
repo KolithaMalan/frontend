@@ -29,7 +29,7 @@ const Home = () => {
     {
       icon: FiUsers,
       title: 'Multi-Role Access',
-      description: 'Separate dashboards for Users, Drivers, Admins, and Project Managers with role-based permissions.',
+      description: 'Separate dashboards for Users, Drivers, Admins, and Plant Managers with role-based permissions.',
     },
     {
       icon: FiShield,

@@ -25,7 +25,7 @@ const RideDetails = ({ ride, isOpen, onClose }) => {
       case 'pending':
         return 'Your ride request is being processed.';
       case 'awaiting_pm':
-        return 'Waiting for Project Manager approval (distance > 15km).';
+        return 'Waiting for Plant Manager approval (distance > 15km).';
       case 'awaiting_admin':
         return 'Waiting for Admin approval.';
       case 'approved':

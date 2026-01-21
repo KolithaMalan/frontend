@@ -899,7 +899,7 @@ const RideRequestForm = ({ isOpen, onClose, onSuccess }) => {
                     <div className="flex items-center gap-2 text-amber-700">
                       <FiAlertCircle className="w-4 h-4" />
                       <p className="text-sm">
-                        This ride exceeds 15km and will require Project Manager approval.
+                        This ride exceeds 15km and will require Plant Manager approval.
                       </p>
                     </div>
                   </div>

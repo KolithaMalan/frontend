@@ -269,7 +269,7 @@ export const generatePMReportPDF = (report, month) => {
     
     doc.setFontSize(16);
     doc.setFont('helvetica', 'normal');
-    doc.text('Project Manager Monthly Report', pageWidth / 2, 27, { align: 'center' });
+    doc.text('Plant Manager Monthly Report', pageWidth / 2, 27, { align: 'center' });
     
     doc.setFontSize(11);
     doc.text(`Report Period: ${month}`, pageWidth / 2, 37, { align: 'center' });
