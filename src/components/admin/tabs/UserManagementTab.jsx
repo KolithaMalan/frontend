@@ -165,7 +165,7 @@ const UserManagementTab = () => {
               <option value="user">👤 Users</option>
               <option value="driver">🚗 Drivers</option>
               <option value="admin">👑 Admins</option>
-              <option value="project_manager">📊 Project Managers</option>
+              <option value="project_manager">📊 Plant Manager</option>
             </select>
             <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
               <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
