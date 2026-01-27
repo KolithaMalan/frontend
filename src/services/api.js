@@ -123,6 +123,31 @@ export const vehiclesAPI = {
   setMaintenance: (id) => api.put(`/vehicles/${id}/maintenance`),
 };
 
+
+// ============ TRACKING API ============
+export const trackingAPI = {
+  // Get all vehicles with tracking data
+  getAllVehicles: (params) => api.get('/tracking/vehicles', { params }),
+  
+  // Get single vehicle tracking
+  getVehicle: (id) => api.get(`/tracking/vehicles/${id}`),
+  
+  // Get active rides with tracking
+  getActiveRides: () => api.get('/tracking/active-rides'),
+  
+  // Get tracking statistics
+  getStats: () => api.get('/tracking/stats'),
+  
+  // Get ETA for a ride
+  getRideETA: (id) => api.get(`/tracking/rides/${id}/eta`),
+  
+  // Get raw data (debug)
+  getRawData: () => api.get('/tracking/raw'),
+};
+
+
+
+
 // ============ REPORTS API ============
 export const reportsAPI = {
   getDashboardStats: () => api.get('/reports/dashboard-stats'),

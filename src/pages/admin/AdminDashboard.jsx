@@ -17,6 +17,8 @@ import Loader from '../../components/common/Loader';
 import UserForm from '../../components/admin/UserFormModal';
 import RideRequestForm from '../../components/rides/RideRequestForm';
 
+import LiveTrackingTab from '../../components/admin/tabs/LiveTrackingTab';
+
 // Tab Components
 import RideManagementTab from '../../components/admin/tabs/RideManagementTab';
 import UserManagementTab from '../../components/admin/tabs/UserManagementTab';
@@ -105,25 +107,7 @@ const AdminDashboard = () => {
       case 'rides':
         return <RideManagementTab />;
       case 'tracking':
-        return (
-          <div className="card">
-            <div className="flex flex-col items-center justify-center py-16">
-              <div className="w-20 h-20 bg-gradient-to-br from-blue-100 to-blue-50 rounded-full flex items-center justify-center mb-4">
-                <FiNavigation className="w-10 h-10 text-blue-600" />
-              </div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">Live Tracking</h3>
-              <p className="text-gray-500 text-center max-w-md mb-4">
-                Real-time GPS tracking will be available here.
-              </p>
-              {stats.liveRides > 0 && (
-                <div className="inline-flex items-center gap-2 px-4 py-2 bg-blue-50 text-blue-700 rounded-full">
-                  <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
-                  <span className="font-medium">{stats.liveRides} active ride{stats.liveRides !== 1 ? 's' : ''}</span>
-                </div>
-              )}
-            </div>
-          </div>
-        );
+      return <LiveTrackingTab />;
       case 'users':
         return <UserManagementTab />;
       case 'vehicles':
