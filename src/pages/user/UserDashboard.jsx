@@ -9,6 +9,7 @@ import {
   FiRefreshCw,
   FiNavigation,
   FiCalendar,
+  FiXCircle,
 } from 'react-icons/fi';
 import { useAuth } from '../../context/AuthContext';
 import { ridesAPI } from '../../services/api';
@@ -64,6 +65,22 @@ const UserDashboard = () => {
   const handleRideCreated = () => {
     setShowRideModal(false);
     fetchData();
+  };
+
+  const handleCancelRide = async (ride) => {
+    const confirmed = window.confirm(
+      `Are you sure you want to cancel Ride #${ride.rideId}?\n\nThis will permanently remove the request and it will no longer appear in the approval queue.`
+    );
+    if (!confirmed) return;
+
+    try {
+      await ridesAPI.cancel(ride._id);
+      toast.success(`Ride #${ride.rideId} has been cancelled and removed successfully`);
+      fetchData(); // Refresh the dashboard
+    } catch (error) {
+      const msg = error.response?.data?.message || 'Failed to cancel ride';
+      toast.error(msg);
+    }
   };
 
   if (loading) {
@@ -174,7 +191,7 @@ const UserDashboard = () => {
         {recentRides.length > 0 ? (
           <div className="space-y-4">
             {recentRides.map((ride) => (
-              <RideCard key={ride._id} ride={ride} />
+              <RideCard key={ride._id} ride={ride} onCancel={handleCancelRide} />
             ))}
           </div>
         ) : (
@@ -210,7 +227,10 @@ const UserDashboard = () => {
 };
 
 // Ride Card Component
-const RideCard = ({ ride }) => {
+const RideCard = ({ ride, onCancel }) => {
+  // Statuses where the ride can be cancelled
+  const canCancel = ['pending', 'awaiting_pm', 'awaiting_admin', 'approved', 'pm_approved', 'assigned'].includes(ride.status);
+
   return (
     <div className="border border-gray-100 rounded-xl p-4 hover:shadow-md transition-shadow">
       <div className="flex flex-col lg:flex-row lg:items-start gap-4">
@@ -295,6 +315,19 @@ const RideCard = ({ ride }) => {
               </p>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Cancel Button */}
+      {canCancel && (
+        <div className="mt-4 pt-4 border-t border-gray-100">
+          <button
+            onClick={() => onCancel?.(ride)}
+            className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-red-600 bg-red-50 border border-red-200 rounded-lg hover:bg-red-100 hover:border-red-300 transition-all duration-200"
+          >
+            <FiXCircle className="w-4 h-4" />
+            Cancel Request
+          </button>
         </div>
       )}
     </div>
