@@ -41,30 +41,72 @@ const UserDashboard = () => {
   const fetchData = async () => {
     try {
       setLoading(true);
-      const [statsRes, ridesRes] = await Promise.all([
+
+      // Fetch stats and rides independently so one failure doesn't block the other
+      const results = await Promise.allSettled([
         ridesAPI.getMyStats(),
         ridesAPI.getAll({ limit: 5 }),
       ]);
 
-      setStats(statsRes.data.stats);
-      setRecentRides(ridesRes.data.rides);
+      const [statsResult, ridesResult] = results;
+
+      // Handle stats
+      if (statsResult.status === 'fulfilled') {
+        setStats(statsResult.value.data.stats);
+      } else {
+        console.error('Failed to load stats:', statsResult.reason);
+      }
+
+      // Handle rides
+      if (ridesResult.status === 'fulfilled') {
+        console.log('Rides loaded:', ridesResult.value.data.rides?.length, 'rides');
+        setRecentRides(ridesResult.value.data.rides || []);
+      } else {
+        console.error('Failed to load rides:', ridesResult.reason);
+        toast.error('Failed to load ride data');
+      }
     } catch (error) {
+      console.error('Dashboard fetchData error:', error);
       toast.error('Failed to load dashboard data');
     } finally {
       setLoading(false);
     }
   };
 
+  // Background refresh - doesn't show full-screen loader
+  const refreshData = async () => {
+    try {
+      const results = await Promise.allSettled([
+        ridesAPI.getMyStats(),
+        ridesAPI.getAll({ limit: 5 }),
+      ]);
+
+      const [statsResult, ridesResult] = results;
+
+      if (statsResult.status === 'fulfilled') {
+        setStats(statsResult.value.data.stats);
+      }
+
+      if (ridesResult.status === 'fulfilled') {
+        console.log('Rides refreshed:', ridesResult.value.data.rides?.length, 'rides');
+        setRecentRides(ridesResult.value.data.rides || []);
+      }
+    } catch (error) {
+      console.error('Background refresh error:', error);
+    }
+  };
+
   const handleRefresh = async () => {
     setRefreshing(true);
-    await fetchData();
+    await refreshData();
     setRefreshing(false);
     toast.success('Dashboard refreshed');
   };
 
   const handleRideCreated = () => {
     setShowRideModal(false);
-    fetchData();
+    // Use background refresh so user sees the update without full-screen loader
+    refreshData();
   };
 
   const handleCancelRide = async (ride) => {
@@ -76,7 +118,7 @@ const UserDashboard = () => {
     try {
       await ridesAPI.cancel(ride._id);
       toast.success(`Ride #${ride.rideId} has been cancelled and removed successfully`);
-      fetchData(); // Refresh the dashboard
+      refreshData(); // Refresh the dashboard
     } catch (error) {
       const msg = error.response?.data?.message || 'Failed to cancel ride';
       toast.error(msg);
