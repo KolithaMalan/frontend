@@ -9,7 +9,6 @@ import {
   FiRefreshCw,
   FiNavigation,
   FiCalendar,
-  FiXCircle,
 } from 'react-icons/fi';
 import { useAuth } from '../../context/AuthContext';
 import { ridesAPI } from '../../services/api';
@@ -41,88 +40,30 @@ const UserDashboard = () => {
   const fetchData = async () => {
     try {
       setLoading(true);
-
-      // Fetch stats and rides independently so one failure doesn't block the other
-      const results = await Promise.allSettled([
+      const [statsRes, ridesRes] = await Promise.all([
         ridesAPI.getMyStats(),
         ridesAPI.getAll({ limit: 5 }),
       ]);
 
-      const [statsResult, ridesResult] = results;
-
-      // Handle stats
-      if (statsResult.status === 'fulfilled') {
-        setStats(statsResult.value.data.stats);
-      } else {
-        console.error('Failed to load stats:', statsResult.reason);
-      }
-
-      // Handle rides
-      if (ridesResult.status === 'fulfilled') {
-        console.log('Rides loaded:', ridesResult.value.data.rides?.length, 'rides');
-        setRecentRides(ridesResult.value.data.rides || []);
-      } else {
-        console.error('Failed to load rides:', ridesResult.reason);
-        toast.error('Failed to load ride data');
-      }
+      setStats(statsRes.data.stats);
+      setRecentRides(ridesRes.data.rides);
     } catch (error) {
-      console.error('Dashboard fetchData error:', error);
       toast.error('Failed to load dashboard data');
     } finally {
       setLoading(false);
     }
   };
 
-  // Background refresh - doesn't show full-screen loader
-  const refreshData = async () => {
-    try {
-      const results = await Promise.allSettled([
-        ridesAPI.getMyStats(),
-        ridesAPI.getAll({ limit: 5 }),
-      ]);
-
-      const [statsResult, ridesResult] = results;
-
-      if (statsResult.status === 'fulfilled') {
-        setStats(statsResult.value.data.stats);
-      }
-
-      if (ridesResult.status === 'fulfilled') {
-        console.log('Rides refreshed:', ridesResult.value.data.rides?.length, 'rides');
-        setRecentRides(ridesResult.value.data.rides || []);
-      }
-    } catch (error) {
-      console.error('Background refresh error:', error);
-    }
-  };
-
   const handleRefresh = async () => {
     setRefreshing(true);
-    await refreshData();
+    await fetchData();
     setRefreshing(false);
     toast.success('Dashboard refreshed');
   };
 
   const handleRideCreated = () => {
     setShowRideModal(false);
-    // Use background refresh so user sees the update without full-screen loader
-    refreshData();
-  };
-
-  const handleCancelRide = async (ride) => {
-    const confirmed = window.confirm(
-      `Are you sure you want to cancel Ride #${ride.rideId}?\n\nThis will permanently remove the request and it will no longer appear in the approval queue.`
-    );
-    if (!confirmed) return;
-
-    try {
-      await ridesAPI.cancel(ride._id);
-      toast.success(`Ride #${ride.rideId} has been cancelled and removed successfully`);
-      refreshData(); // Refresh the dashboard
-    } catch (error) {
-      const msg = error.response?.data?.message || 'Failed to cancel ride';
-      toast.error(msg);
-    }
+    fetchData();
   };
 
   if (loading) {
@@ -233,7 +174,7 @@ const UserDashboard = () => {
         {recentRides.length > 0 ? (
           <div className="space-y-4">
             {recentRides.map((ride) => (
-              <RideCard key={ride._id} ride={ride} onCancel={handleCancelRide} />
+              <RideCard key={ride._id} ride={ride} />
             ))}
           </div>
         ) : (
@@ -269,10 +210,7 @@ const UserDashboard = () => {
 };
 
 // Ride Card Component
-const RideCard = ({ ride, onCancel }) => {
-  // Statuses where the ride can be cancelled
-  const canCancel = ['pending', 'awaiting_pm', 'awaiting_admin', 'approved', 'pm_approved', 'assigned'].includes(ride.status);
-
+const RideCard = ({ ride }) => {
   return (
     <div className="border border-gray-100 rounded-xl p-4 hover:shadow-md transition-shadow">
       <div className="flex flex-col lg:flex-row lg:items-start gap-4">
@@ -357,19 +295,6 @@ const RideCard = ({ ride, onCancel }) => {
               </p>
             </div>
           </div>
-        </div>
-      )}
-
-      {/* Cancel Button */}
-      {canCancel && (
-        <div className="mt-4 pt-4 border-t border-gray-100">
-          <button
-            onClick={() => onCancel?.(ride)}
-            className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-red-600 bg-red-50 border border-red-200 rounded-lg hover:bg-red-100 hover:border-red-300 transition-all duration-200"
-          >
-            <FiXCircle className="w-4 h-4" />
-            Cancel Request
-          </button>
         </div>
       )}
     </div>
