@@ -70,22 +70,22 @@ const router = createBrowserRouter([
     errorElement: <ErrorFallback />,
     children: [
       { 
-        path: 'login', 
+        path: '/login', 
         element: <Login />,
         errorElement: <ErrorFallback />,
       },
       { 
-        path: 'register', 
+        path: '/register', 
         element: <Register />,
         errorElement: <ErrorFallback />,
       },
       { 
-        path: 'forgot-password', 
+        path: '/forgot-password', 
         element: <ForgotPassword />,
         errorElement: <ErrorFallback />,
       },
       { 
-        path: 'reset-password/:token', 
+        path: '/reset-password/:token', 
         element: <ResetPassword />,
         errorElement: <ErrorFallback />,
       },
