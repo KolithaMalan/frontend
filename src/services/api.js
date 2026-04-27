@@ -61,6 +61,8 @@ export const authAPI = {
   getProfile: () => api.get('/auth/me'),
   updateProfile: (data) => api.put('/auth/profile', data),
   changePassword: (data) => api.put('/auth/password', data),
+  forgotPassword: (email) => api.post('/auth/forgot-password', { email }),
+  resetPassword: (token, password) => api.post('/auth/reset-password', { token, password }),
 };
 
 // ============ RIDES API ============
@@ -71,6 +73,7 @@ export const ridesAPI = {
   getOne: (id) => api.get(`/rides/${id}`),
   getMyStats: () => api.get('/rides/my-stats'),
   cancel: (id) => api.put(`/rides/${id}/cancel`),
+  delete: (id) => api.delete(`/rides/${id}`),
   
   // PM Actions
   getAwaitingPM: () => api.get('/rides/awaiting-pm'),
