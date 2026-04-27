@@ -9,6 +9,8 @@ import DashboardLayout from './layouts/DashboardLayout';
 import Home from './pages/Home';
 import Login from './pages/Login';
 import Register from './pages/Register';
+import ForgotPassword from './pages/ForgotPassword';
+import ResetPassword from './pages/ResetPassword';
 import NotFound from './pages/NotFound';
 
 // User Pages
@@ -75,6 +77,16 @@ const router = createBrowserRouter([
       { 
         path: 'register', 
         element: <Register />,
+        errorElement: <ErrorFallback />,
+      },
+      { 
+        path: 'forgot-password', 
+        element: <ForgotPassword />,
+        errorElement: <ErrorFallback />,
+      },
+      { 
+        path: 'reset-password/:token', 
+        element: <ResetPassword />,
         errorElement: <ErrorFallback />,
       },
     ],
