@@ -120,7 +120,7 @@ const AssignmentCard = ({ ride, drivers = [], vehicles = [], onAssigned, onReass
     <motion.div
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
-      className="bg-white rounded-xl border border-gray-200 p-5 hover:shadow-lg transition-shadow"
+      className="rounded-xl border-2 border-indigo-200 bg-gradient-to-br from-indigo-50/70 via-white to-violet-50/50 p-5 hover:shadow-lg transition-shadow"
     >
       {/* Header */}
       <div className="flex flex-wrap items-start justify-between gap-3 mb-4">
