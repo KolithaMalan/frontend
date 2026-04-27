@@ -175,14 +175,14 @@ const RideManagementTab = () => {
       {/* 2. Approved Rides - Ready for Assignment */}
       <div>
         <div className="flex items-center gap-3 mb-4">
-          <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
-            <FiCheckCircle className="w-5 h-5 text-green-600" />
+          <div className="w-10 h-10 bg-teal-100 rounded-lg flex items-center justify-center">
+            <FiCheckCircle className="w-5 h-5 text-teal-600" />
           </div>
           <div>
             <h2 className="text-lg font-semibold text-gray-900">
               Approved Rides - Driver & Vehicle Assignment
             </h2>
-            <p className="text-sm text-gray-500">
+            <p className="text-sm text-teal-600 font-medium">
               {readyForAssignment.length} ride(s) ready for assignment
             </p>
           </div>
@@ -214,14 +214,14 @@ const RideManagementTab = () => {
       {/* 3. Assigned Rides - Reassignment Available */}
       <div>
         <div className="flex items-center gap-3 mb-4">
-          <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
-            <FiTruck className="w-5 h-5 text-purple-600" />
+          <div className="w-10 h-10 bg-indigo-100 rounded-lg flex items-center justify-center">
+            <FiTruck className="w-5 h-5 text-indigo-600" />
           </div>
           <div>
             <h2 className="text-lg font-semibold text-gray-900">
               Assigned Rides - Manage Assignments
             </h2>
-            <p className="text-sm text-gray-500">
+            <p className="text-sm text-indigo-600 font-medium">
               {assignedRides.length} ride(s) currently assigned (can be reassigned if needed)
             </p>
           </div>
