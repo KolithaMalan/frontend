@@ -112,7 +112,11 @@ const RideApprovalCard = ({
     <motion.div
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
-      className="card hover:shadow-lg transition-shadow"
+      className={`card hover:shadow-lg transition-shadow ${
+        type === 'assignment'
+          ? 'border-2 border-teal-200 bg-gradient-to-br from-teal-50/60 via-white to-cyan-50/40'
+          : ''
+      }`}
     >
       {/* Header */}
       <div className="flex flex-wrap items-start justify-between gap-3 mb-4">
@@ -434,9 +438,9 @@ const RideApprovalCard = ({
         {type === 'assignment' && (
           <button
             onClick={() => onAssign?.(ride)}
-            className="btn btn-primary flex-1"
+            className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-teal-600 text-white rounded-xl font-medium hover:bg-teal-700 transition-colors shadow-sm"
           >
-            <FiTruck className="w-5 h-5 mr-2" />
+            <FiTruck className="w-5 h-5" />
             Assign Driver & Vehicle
           </button>
         )}
