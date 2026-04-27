@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
   FiTruck,
   FiCheckCircle,
@@ -9,6 +9,9 @@ import {
   FiRefreshCw,
   FiNavigation,
   FiCalendar,
+  FiTrash2,
+  FiXCircle,
+  FiAlertTriangle,
 } from 'react-icons/fi';
 import { useAuth } from '../../context/AuthContext';
 import { ridesAPI } from '../../services/api';
@@ -40,13 +43,17 @@ const UserDashboard = () => {
   const fetchData = async () => {
     try {
       setLoading(true);
-      const [statsRes, ridesRes] = await Promise.all([
+      const [statsRes, ridesRes] = await Promise.allSettled([
         ridesAPI.getMyStats(),
-        ridesAPI.getAll({ limit: 5 }),
+        ridesAPI.getAll({ limit: 20 }),
       ]);
 
-      setStats(statsRes.data.stats);
-      setRecentRides(ridesRes.data.rides);
+      if (statsRes.status === 'fulfilled') {
+        setStats(statsRes.value.data.stats);
+      }
+      if (ridesRes.status === 'fulfilled') {
+        setRecentRides(ridesRes.value.data.rides);
+      }
     } catch (error) {
       toast.error('Failed to load dashboard data');
     } finally {
@@ -64,6 +71,28 @@ const UserDashboard = () => {
   const handleRideCreated = () => {
     setShowRideModal(false);
     fetchData();
+  };
+
+  const handleDeleteRide = async (rideId) => {
+    try {
+      await ridesAPI.delete(rideId);
+      toast.success('Ride request deleted successfully');
+      fetchData(); // Refresh the list
+    } catch (error) {
+      const message = error.response?.data?.message || 'Failed to delete ride';
+      toast.error(message);
+    }
+  };
+
+  const handleCancelRide = async (rideId) => {
+    try {
+      await ridesAPI.cancel(rideId);
+      toast.success('Ride cancelled successfully');
+      fetchData(); // Refresh the list
+    } catch (error) {
+      const message = error.response?.data?.message || 'Failed to cancel ride';
+      toast.error(message);
+    }
   };
 
   if (loading) {
@@ -165,16 +194,18 @@ const UserDashboard = () => {
         className="card"
       >
         <div className="flex items-center justify-between mb-6">
-          <h2 className="text-lg font-semibold text-gray-900">Recent Rides</h2>
-          <a href="#" className="text-primary-600 hover:text-primary-700 text-sm font-medium">
-            View All
-          </a>
+          <h2 className="text-lg font-semibold text-gray-900">My Rides</h2>
         </div>
 
         {recentRides.length > 0 ? (
           <div className="space-y-4">
             {recentRides.map((ride) => (
-              <RideCard key={ride._id} ride={ride} />
+              <RideCard
+                key={ride._id}
+                ride={ride}
+                onDelete={handleDeleteRide}
+                onCancel={handleCancelRide}
+              />
             ))}
           </div>
         ) : (
@@ -210,9 +241,32 @@ const UserDashboard = () => {
 };
 
 // Ride Card Component
-const RideCard = ({ ride }) => {
+const RideCard = ({ ride, onDelete, onCancel }) => {
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [showCancelConfirm, setShowCancelConfirm] = useState(false);
+  const [actionLoading, setActionLoading] = useState(false);
+
+  // Determine if ride can be deleted (pending states + cancelled + rejected)
+  const canDelete = ['pending', 'awaiting_pm', 'awaiting_admin', 'cancelled', 'rejected'].includes(ride.status);
+  // Determine if ride can be cancelled (only pending states, not already cancelled)
+  const canCancel = ['pending', 'awaiting_pm', 'awaiting_admin'].includes(ride.status);
+
+  const handleDelete = async () => {
+    setActionLoading(true);
+    await onDelete(ride._id);
+    setActionLoading(false);
+    setShowDeleteConfirm(false);
+  };
+
+  const handleCancel = async () => {
+    setActionLoading(true);
+    await onCancel(ride._id);
+    setActionLoading(false);
+    setShowCancelConfirm(false);
+  };
+
   return (
-    <div className="border border-gray-100 rounded-xl p-4 hover:shadow-md transition-shadow">
+    <div className="border border-gray-100 rounded-xl p-4 hover:shadow-md transition-shadow relative">
       <div className="flex flex-col lg:flex-row lg:items-start gap-4">
         {/* Ride Info */}
         <div className="flex-1">
@@ -261,8 +315,8 @@ const RideCard = ({ ride }) => {
           </div>
         </div>
 
-        {/* Right side info */}
-        <div className="flex flex-row lg:flex-col items-center lg:items-end gap-4 lg:gap-2 text-right">
+        {/* Right side info + actions */}
+        <div className="flex flex-row lg:flex-col items-center lg:items-end gap-3 lg:gap-2">
           <div className="flex items-center gap-2 px-3 py-1.5 bg-gray-100 rounded-full">
             <FiNavigation className="w-4 h-4 text-gray-600" />
             <span className="font-semibold text-gray-900">
@@ -274,6 +328,32 @@ const RideCard = ({ ride }) => {
             <span>{formatDate(ride.scheduledDate)}</span>
             <span>{formatTime(ride.scheduledTime)}</span>
           </div>
+
+          {/* Action Buttons */}
+          {(canCancel || canDelete) && (
+            <div className="flex gap-2 mt-2">
+              {canCancel && (
+                <button
+                  onClick={() => setShowCancelConfirm(true)}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-orange-700 bg-orange-50 border border-orange-200 rounded-lg hover:bg-orange-100 transition-colors"
+                  title="Cancel this ride request"
+                >
+                  <FiXCircle className="w-3.5 h-3.5" />
+                  Cancel
+                </button>
+              )}
+              {canDelete && (
+                <button
+                  onClick={() => setShowDeleteConfirm(true)}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-red-700 bg-red-50 border border-red-200 rounded-lg hover:bg-red-100 transition-colors"
+                  title="Delete this ride request"
+                >
+                  <FiTrash2 className="w-3.5 h-3.5" />
+                  Delete
+                </button>
+              )}
+            </div>
+          )}
         </div>
       </div>
 
@@ -297,6 +377,120 @@ const RideCard = ({ ride }) => {
           </div>
         </div>
       )}
+
+      {/* Cancel Confirmation Modal */}
+      <AnimatePresence>
+        {showCancelConfirm && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+            onClick={() => setShowCancelConfirm(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              onClick={(e) => e.stopPropagation()}
+              className="bg-white rounded-2xl p-6 max-w-sm w-full shadow-2xl"
+            >
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-12 h-12 bg-orange-100 rounded-full flex items-center justify-center">
+                  <FiAlertTriangle className="w-6 h-6 text-orange-600" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900">Cancel Ride</h3>
+                  <p className="text-sm text-gray-500">Ride {formatRideId(ride.rideId)}</p>
+                </div>
+              </div>
+              <p className="text-gray-600 mb-6">
+                Are you sure you want to cancel this ride request? The ride will be marked as cancelled.
+              </p>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setShowCancelConfirm(false)}
+                  className="btn btn-outline flex-1"
+                  disabled={actionLoading}
+                >
+                  Keep Ride
+                </button>
+                <button
+                  onClick={handleCancel}
+                  disabled={actionLoading}
+                  className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-orange-600 text-white rounded-xl font-medium hover:bg-orange-700 transition-colors disabled:opacity-50"
+                >
+                  {actionLoading ? (
+                    <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
+                  ) : (
+                    <>
+                      <FiXCircle className="w-4 h-4" />
+                      Cancel Ride
+                    </>
+                  )}
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Delete Confirmation Modal */}
+      <AnimatePresence>
+        {showDeleteConfirm && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+            onClick={() => setShowDeleteConfirm(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              onClick={(e) => e.stopPropagation()}
+              className="bg-white rounded-2xl p-6 max-w-sm w-full shadow-2xl"
+            >
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
+                  <FiTrash2 className="w-6 h-6 text-red-600" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900">Delete Ride</h3>
+                  <p className="text-sm text-gray-500">Ride {formatRideId(ride.rideId)}</p>
+                </div>
+              </div>
+              <p className="text-gray-600 mb-6">
+                Are you sure you want to permanently delete this ride request? This action cannot be undone and the ride will be removed from the system.
+              </p>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setShowDeleteConfirm(false)}
+                  className="btn btn-outline flex-1"
+                  disabled={actionLoading}
+                >
+                  Keep Ride
+                </button>
+                <button
+                  onClick={handleDelete}
+                  disabled={actionLoading}
+                  className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-red-600 text-white rounded-xl font-medium hover:bg-red-700 transition-colors disabled:opacity-50"
+                >
+                  {actionLoading ? (
+                    <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
+                  ) : (
+                    <>
+                      <FiTrash2 className="w-4 h-4" />
+                      Delete
+                    </>
+                  )}
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };
