@@ -266,7 +266,9 @@ const RideCard = ({ ride, onDelete, onCancel }) => {
   };
 
   return (
-    <div className="border border-gray-100 rounded-xl p-4 hover:shadow-md transition-shadow relative">
+    <div className={`border rounded-xl p-4 hover:shadow-md transition-shadow relative ${
+      canCancel ? 'border-orange-200 bg-orange-50/30' : 'border-gray-100'
+    }`}>
       <div className="flex flex-col lg:flex-row lg:items-start gap-4">
         {/* Ride Info */}
         <div className="flex-1">
@@ -315,7 +317,7 @@ const RideCard = ({ ride, onDelete, onCancel }) => {
           </div>
         </div>
 
-        {/* Right side info + actions */}
+        {/* Right side info */}
         <div className="flex flex-row lg:flex-col items-center lg:items-end gap-3 lg:gap-2">
           <div className="flex items-center gap-2 px-3 py-1.5 bg-gray-100 rounded-full">
             <FiNavigation className="w-4 h-4 text-gray-600" />
@@ -328,32 +330,6 @@ const RideCard = ({ ride, onDelete, onCancel }) => {
             <span>{formatDate(ride.scheduledDate)}</span>
             <span>{formatTime(ride.scheduledTime)}</span>
           </div>
-
-          {/* Action Buttons */}
-          {(canCancel || canDelete) && (
-            <div className="flex gap-2 mt-2">
-              {canCancel && (
-                <button
-                  onClick={() => setShowCancelConfirm(true)}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-orange-700 bg-orange-50 border border-orange-200 rounded-lg hover:bg-orange-100 transition-colors"
-                  title="Cancel this ride request"
-                >
-                  <FiXCircle className="w-3.5 h-3.5" />
-                  Cancel
-                </button>
-              )}
-              {canDelete && (
-                <button
-                  onClick={() => setShowDeleteConfirm(true)}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-red-700 bg-red-50 border border-red-200 rounded-lg hover:bg-red-100 transition-colors"
-                  title="Delete this ride request"
-                >
-                  <FiTrash2 className="w-3.5 h-3.5" />
-                  Delete
-                </button>
-              )}
-            </div>
-          )}
         </div>
       </div>
 
@@ -375,6 +351,30 @@ const RideCard = ({ ride, onDelete, onCancel }) => {
               </p>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* ========== ACTION BUTTONS - Full Width Bar ========== */}
+      {(canCancel || canDelete) && (
+        <div className="mt-4 pt-4 border-t border-gray-200 flex flex-wrap gap-3">
+          {canCancel && (
+            <button
+              onClick={() => setShowCancelConfirm(true)}
+              className="flex-1 min-w-[140px] inline-flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-semibold text-orange-700 bg-orange-100 border-2 border-orange-300 rounded-xl hover:bg-orange-200 transition-colors"
+            >
+              <FiXCircle className="w-4 h-4" />
+              Cancel Ride
+            </button>
+          )}
+          {canDelete && (
+            <button
+              onClick={() => setShowDeleteConfirm(true)}
+              className="flex-1 min-w-[140px] inline-flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-semibold text-red-700 bg-red-100 border-2 border-red-300 rounded-xl hover:bg-red-200 transition-colors"
+            >
+              <FiTrash2 className="w-4 h-4" />
+              Delete Ride
+            </button>
+          )}
         </div>
       )}
 
