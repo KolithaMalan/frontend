@@ -195,6 +195,7 @@ const RideManagementTab = () => {
                 key={ride._id}
                 ride={ride}
                 type="assignment"
+                cardVariant="teal"
                 onAssign={handleAssign}
                 onViewMap={handleViewMap}
               />
