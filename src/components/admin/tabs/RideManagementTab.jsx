@@ -1,8 +1,10 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { motion } from 'framer-motion';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
   FiClock,
   FiCheckCircle,
+  FiChevronDown,
+  FiChevronUp,
   FiRefreshCw,
   FiAlertCircle,
   FiTruck,
@@ -23,6 +25,26 @@ const RideManagementTab = () => {
   const [awaitingApproval, setAwaitingApproval] = useState([]);
   const [readyForAssignment, setReadyForAssignment] = useState([]);
   const [assignedRides, setAssignedRides] = useState([]);
+
+  // Show more/less state for each section
+  const MAX_VISIBLE = 6;
+  const [showAllAwaiting, setShowAllAwaiting] = useState(false);
+  const [showAllReady, setShowAllReady] = useState(false);
+  const [showAllAssigned, setShowAllAssigned] = useState(false);
+
+  // Compute visible rides for each section
+  const visibleAwaiting = useMemo(
+    () => showAllAwaiting ? awaitingApproval : awaitingApproval.slice(0, MAX_VISIBLE),
+    [awaitingApproval, showAllAwaiting]
+  );
+  const visibleReady = useMemo(
+    () => showAllReady ? readyForAssignment : readyForAssignment.slice(0, MAX_VISIBLE),
+    [readyForAssignment, showAllReady]
+  );
+  const visibleAssigned = useMemo(
+    () => showAllAssigned ? assignedRides : assignedRides.slice(0, MAX_VISIBLE),
+    [assignedRides, showAllAssigned]
+  );
 
   // Modal states
   const [selectedRide, setSelectedRide] = useState(null);
@@ -148,19 +170,50 @@ const RideManagementTab = () => {
         </div>
 
         {awaitingApproval.length > 0 ? (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            {awaitingApproval.map((ride) => (
-              <RideApprovalCard
-                key={ride._id}
-                ride={ride}
-                type="approval"
-                userRole="admin"
-                onApprove={handleApprove}
-                onReject={handleReject}
-                onViewMap={handleViewMap}
-              />
-            ))}
-          </div>
+          <>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              <AnimatePresence initial={false}>
+                {visibleAwaiting.map((ride) => (
+                  <motion.div
+                    key={ride._id}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                    transition={{ duration: 0.25 }}
+                  >
+                    <RideApprovalCard
+                      ride={ride}
+                      type="approval"
+                      userRole="admin"
+                      onApprove={handleApprove}
+                      onReject={handleReject}
+                      onViewMap={handleViewMap}
+                    />
+                  </motion.div>
+                ))}
+              </AnimatePresence>
+            </div>
+            {awaitingApproval.length > MAX_VISIBLE && (
+              <div className="flex justify-center mt-4">
+                <button
+                  onClick={() => setShowAllAwaiting((prev) => !prev)}
+                  className="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-medium text-amber-700 bg-amber-50 hover:bg-amber-100 border border-amber-200 rounded-full transition-all duration-200 shadow-sm hover:shadow"
+                >
+                  {showAllAwaiting ? (
+                    <>
+                      <FiChevronUp className="w-4 h-4" />
+                      Show Less
+                    </>
+                  ) : (
+                    <>
+                      <FiChevronDown className="w-4 h-4" />
+                      Show More ({awaitingApproval.length - MAX_VISIBLE} more)
+                    </>
+                  )}
+                </button>
+              </div>
+            )}
+          </>
         ) : (
           <div className="card bg-gray-50">
             <EmptyState
@@ -189,18 +242,49 @@ const RideManagementTab = () => {
         </div>
 
         {readyForAssignment.length > 0 ? (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            {readyForAssignment.map((ride) => (
-              <RideApprovalCard
-                key={ride._id}
-                ride={ride}
-                type="assignment"
-                cardVariant="teal"
-                onAssign={handleAssign}
-                onViewMap={handleViewMap}
-              />
-            ))}
-          </div>
+          <>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              <AnimatePresence initial={false}>
+                {visibleReady.map((ride) => (
+                  <motion.div
+                    key={ride._id}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                    transition={{ duration: 0.25 }}
+                  >
+                    <RideApprovalCard
+                      ride={ride}
+                      type="assignment"
+                      cardVariant="teal"
+                      onAssign={handleAssign}
+                      onViewMap={handleViewMap}
+                    />
+                  </motion.div>
+                ))}
+              </AnimatePresence>
+            </div>
+            {readyForAssignment.length > MAX_VISIBLE && (
+              <div className="flex justify-center mt-4">
+                <button
+                  onClick={() => setShowAllReady((prev) => !prev)}
+                  className="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-medium text-teal-700 bg-teal-50 hover:bg-teal-100 border border-teal-200 rounded-full transition-all duration-200 shadow-sm hover:shadow"
+                >
+                  {showAllReady ? (
+                    <>
+                      <FiChevronUp className="w-4 h-4" />
+                      Show Less
+                    </>
+                  ) : (
+                    <>
+                      <FiChevronDown className="w-4 h-4" />
+                      Show More ({readyForAssignment.length - MAX_VISIBLE} more)
+                    </>
+                  )}
+                </button>
+              </div>
+            )}
+          </>
         ) : (
           <div className="card bg-gray-50">
             <EmptyState
@@ -229,16 +313,47 @@ const RideManagementTab = () => {
         </div>
 
         {assignedRides.length > 0 ? (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            {assignedRides.map((ride) => (
-              <AssignmentCard
-                key={ride._id}
-                ride={ride}
-                onAssigned={handleAssignmentComplete}
-                onReassigned={handleAssignmentComplete}
-              />
-            ))}
-          </div>
+          <>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              <AnimatePresence initial={false}>
+                {visibleAssigned.map((ride) => (
+                  <motion.div
+                    key={ride._id}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                    transition={{ duration: 0.25 }}
+                  >
+                    <AssignmentCard
+                      ride={ride}
+                      onAssigned={handleAssignmentComplete}
+                      onReassigned={handleAssignmentComplete}
+                    />
+                  </motion.div>
+                ))}
+              </AnimatePresence>
+            </div>
+            {assignedRides.length > MAX_VISIBLE && (
+              <div className="flex justify-center mt-4">
+                <button
+                  onClick={() => setShowAllAssigned((prev) => !prev)}
+                  className="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-medium text-indigo-700 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 rounded-full transition-all duration-200 shadow-sm hover:shadow"
+                >
+                  {showAllAssigned ? (
+                    <>
+                      <FiChevronUp className="w-4 h-4" />
+                      Show Less
+                    </>
+                  ) : (
+                    <>
+                      <FiChevronDown className="w-4 h-4" />
+                      Show More ({assignedRides.length - MAX_VISIBLE} more)
+                    </>
+                  )}
+                </button>
+              </div>
+            )}
+          </>
         ) : (
           <div className="card bg-gray-50">
             <EmptyState
